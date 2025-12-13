@@ -1,0 +1,48 @@
+Package: SLCPTAC
+Type: Package
+Title: Multi-Omics Analysis Toolkit for CPTAC Cancer Database
+Version: 1.2.0
+Authors@R: person("Zaoqu", "Liu", 
+           email = "liuzaoqu@163.com", 
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0452-742X"))
+Description: A comprehensive toolkit for mining and analyzing multi-omics cancer data 
+    from CPTAC (Clinical Proteomic Tumor Analysis Consortium) and other databases. 
+    Provides elegant, easy-to-use functions for correlation analysis (7 scenarios), 
+    enrichment analysis (8 scenarios), and survival analysis (2 scenarios). Supports 
+    RNAseq, Protein, Phosphorylation, Mutation, Clinical, Copy Number, and Methylation 
+    data across 10 cancer types. Features automatic phosphorylation site detection, 
+    multi-cancer comparison, and publication-ready visualizations. Implements 17 
+    analysis scenarios covering all combinations of continuous and categorical variables.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.3
+Depends: 
+    R (>= 4.0.0)
+Imports:
+    qs (>= 0.25.0),
+    dplyr (>= 1.0.0),
+    ggplot2 (>= 3.3.0),
+    ggforge,
+    survival (>= 3.2.0),
+    patchwork (>= 1.1.0),
+    BioEnricher,
+    genekitr2,
+    astat,
+    rlang (>= 1.0.0),
+    igraph (>= 1.2.0),
+    ggraph (>= 2.0.0),
+    fgsea (>= 1.18.0),
+    jsonlite (>= 1.7.0),
+    ComplexHeatmap,
+    Hmisc,
+    tidyr
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    progress
+VignetteBuilder: knitr
+URL: https://github.com/SolvingLab/SLCPTAC
+BugReports: https://github.com/SolvingLab/SLCPTAC/issues

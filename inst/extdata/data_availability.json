@@ -1,0 +1,88 @@
+{
+  "CPTAC": {
+    "BRCA": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": false,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "CCRCC": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": true,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "COAD": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": false,
+      "Methylation": false,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "GBM": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": true,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "HNSCC": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": true,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "LUAD": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": true,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "LUSC": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": true,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "OV": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": false,
+      "Methylation": false,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "PDAC": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": true,
+      "logCNA": true,
+      "Mutation": true
+    },
+    "UCEC": {
+      "RNAseq": true,
+      "Protein": true,
+      "Phospho": true,
+      "Methylation": true,
+      "logCNA": true,
+      "Mutation": true
+    }
+  },
+  "TCGA": {
+    "_comment": "Future: TCGA data availability will be added here"
+  }
+}
+

@@ -1,0 +1,34 @@
+# R specific
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Old backup files
+README_OLD.md
+
+# Keep output images for README demonstration
+# slcptac_output folder contains example outputs referenced in README
+
