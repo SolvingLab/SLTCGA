@@ -2940,7 +2940,7 @@ Analysis of The Cancer Genome Atlas. [Journal], [Volume]([Issue]), [Pages].
 
 ## Contact
 
-- **Author**: Zaoqu Liu
+- **Author**: Zaoqu Liu; Yuyao Liu
 - **Email**: liuzaoqu@163.com
 - **GitHub**: https://github.com/SolvingLab/SLTCGA
 
