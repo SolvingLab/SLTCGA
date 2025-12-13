@@ -9,7 +9,8 @@
   data,
   stats,
   var1_features,
-  var2_features
+  var2_features,
+  plot_type = "auto"
 )
 }
 \description{

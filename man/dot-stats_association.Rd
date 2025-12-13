@@ -12,21 +12,7 @@
   p_adjust_method = "BH"
 )
 }
-\arguments{
-\item{data}{Data frame}
-
-\item{var1_features}{Character vector of var1 feature labels}
-
-\item{var2_features}{Character vector of var2 feature labels}
-
-\item{alpha}{Significance level}
-
-\item{p_adjust_method}{P-value adjustment method}
-}
-\value{
-Data frame with association statistics
-}
 \description{
-Chi-square or Fisher's exact test for categorical associations
+Calculate Association Statistics (Categorical vs Categorical)
 }
 \keyword{internal}

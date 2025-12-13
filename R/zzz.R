@@ -1,21 +1,34 @@
 # ==============================================================================
-# Package Initialization
-# ==============================================================================
-# This file contains functions that run when the package is loaded
+# Package Startup
 # ==============================================================================
 
-#' Package Load Hook
-#'
-#' @description
-#' Called when the package is loaded. Sets up default options.
-#'
-#' @param libname Library name
-#' @param pkgname Package name
-#'
-#' @keywords internal
 .onLoad <- function(libname, pkgname) {
-  # Set ragg max dimension to 100000px (default is 50000px)
-  # This allows saving large plots with many variables/genes
-  # Example: 36 phospho sites × 30 genes each = very large plot
-  options(ragg.max_dim = 100000)
+  # Check SL_BULK_DATA environment variable
+  bulk_data <- Sys.getenv("SL_BULK_DATA")
+
+  if (bulk_data == "") {
+    packageStartupMessage(
+      "Note: SL_BULK_DATA environment variable not set.\n",
+      "Please set it using:\n",
+      "  Sys.setenv(SL_BULK_DATA = '/path/to/bulk_data')\n",
+      "Required data files should be in:\n",
+      "  - TCGA_Omics_Split/\n",
+      "  - TCGA_RNAseq_log2TPM_SplitCancer/\n",
+      "  - TCGA_Clinical_Final_SovingLab.qs\n",
+      "  - TCGA_miRNA_pancancer_scores.qs\n",
+      "  - TCGA_DeconvCell_All_scores.qs"
+    )
+  } else {
+    packageStartupMessage("SLTCGA loaded successfully!\n")
+  }
+}
+
+#' @keywords internal
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage(
+    "\nUse list_modalities() to see available data types.\n\n",
+    "╔════════════════════════════════════════════════════════════╗\n",
+    "║  8 Modalities | 33 Main + 27 Subtypes + 5 Combined | 17 Scenarios║\n",
+    "╚════════════════════════════════════════════════════════════╝\n"
+  )
 }

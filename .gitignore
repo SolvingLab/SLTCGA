@@ -1,34 +1,23 @@
 # R specific
-.Rproj.user/
 .Rhistory
+.Rapp.history
 .RData
 .Ruserdata
+*.Rproj.user
 
-# System files
+# macOS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+.AppleDouble
+.LSOverride
 
-# IDE
-.vscode/
-.idea/
+# Output directories (optional - uncomment if you don't want to upload images)
+# sltcga_output/
+# sl_output/
 
-# Temporary files
-*.swp
-*.swo
+# Backup files
 *~
+*.bak
 
-# Build artifacts
-*.tar.gz
-*.zip
-
-# Old backup files
-README_OLD.md
-
-# Keep output images for README demonstration
-# slcptac_output folder contains example outputs referenced in README
+# Large data files (add your data directory)
+# bulk_data/
 

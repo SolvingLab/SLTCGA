@@ -4,7 +4,13 @@
 \alias{.stats_cor_genome}
 \title{Perform genome-wide correlation}
 \usage{
-.stats_cor_genome(var_data, genome_matrix, var_cancers, method = "pearson")
+.stats_cor_genome(
+  var_data,
+  genome_matrix,
+  var_cancers,
+  method = "pearson",
+  for_enrichment = FALSE
+)
 }
 \description{
 Perform genome-wide correlation

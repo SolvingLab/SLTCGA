@@ -71,7 +71,7 @@
       data = plot_data,
       x = var1_col,
       y = var2_col,
-      title = paste0("CPTAC-", cancer_type[1]),
+      title = paste0("TCGA-", cancer_type[1]),
       xlab = xlab,
       ylab = ylab,
       anno_items = c("pearson", "p", "n")
@@ -99,12 +99,12 @@
       size_by = 3,
       fill_name = "-log10(p)",
       palette = "RdBu",
-      title = "CPTAC-Database",
+      title = "TCGA-Database",
       xlab = paste0("Correlation with ", var2_label),
       ylab = ""
     )
 
-    width <- 6
+    width <- 7
     height <- max(2 + n_cancers * 0.3, 3)
   }
 
@@ -159,7 +159,7 @@
       size_by = 3,
       fill_name = "-log10(p)",
       palette = "RdBu",
-      title = paste0("CPTAC-", cancer_type[1]),
+      title = paste0("TCGA-", cancer_type[1]),
       xlab = paste0("Correlation with ", single_var_label),
       ylab = ""
     )
@@ -187,7 +187,7 @@
       fill_name = "Correlation",
       palette = "RdBu",
       x_text_angle = 45,
-      title = "CPTAC-Database",
+      title = "TCGA-Database",
       xlab = "",
       ylab = ""
     )
@@ -195,8 +195,8 @@
     # 计算图形尺寸
     n_var1_features <- length(unique(stats_plot$var1_feature))
     n_var2_features <- length(unique(stats_plot$var2_feature))
-    width <- max(3 + n_var1_features * 0.45, 5)
-    height <- max(3 + n_var2_features * 0.3, 4)
+    width <- max(4.5 + n_var1_features * 0.45, 7)
+    height <- max(4.5 + n_var2_features * 0.3, 6)
   }
 
   attr(plot, "width") <- width
@@ -238,7 +238,7 @@
       fill_name = "Correlation",
       palette = "RdBu",
       x_text_angle = 45,
-      title = paste0("CPTAC-", cancer_type[1]),
+      title = paste0("TCGA-", cancer_type[1]),
       xlab = "",
       ylab = ""
     )
@@ -261,7 +261,7 @@
       fill_name = "Correlation",
       palette = "RdBu",
       x_text_angle = 45,
-      title = "CPTAC-Database",
+      title = "TCGA-Database",
       xlab = "",
       ylab = ""
     )
@@ -307,7 +307,7 @@
   if (n_cancers == 1) {
     # Single cancer: BoxPlot
     # .create_classic_boxplot expects (data, cat_var, con_var, title, xlab, ylab, stats)
-    title <- paste0("CPTAC-", cancer_type[1])
+    title <- paste0("TCGA-", cancer_type[1])
 
     # X轴（分类变量）：只显示变量名
     xlab <- gsub("\\s*\\(.*", "", cat_var)
@@ -320,7 +320,7 @@
     # Get number of groups for dynamic width
     n_groups <- length(unique(data[[cat_col]][!is.na(data[[cat_col]])]))
     width <- max(2.3 + n_groups * 0.35, 3)
-    height <- 4.5
+    height <- 5
   } else {
     # Multi-cancer: multiple box plots
     plot_list <- list()
@@ -342,7 +342,7 @@
         ct_cat_col <- ct_cat_cols[1]
 
         ct_stats <- stats[grepl(ct, stats$var1_feature) | grepl(ct, stats$var2_feature), ]
-        p <- .create_classic_boxplot(ct_data, ct_cat_col, ct_con_col, paste0("CPTAC-", ct), xlab, ylab, ct_stats)
+        p <- .create_classic_boxplot(ct_data, ct_cat_col, ct_con_col, paste0("TCGA-", ct), xlab, ylab, ct_stats)
         plot_list[[ct]] <- p
       }
     }
@@ -356,7 +356,7 @@
 
     # Smaller width per plot for multiple boxplots
     width <- layout$ncol * 3
-    height <- layout$nrow * 4.5
+    height <- layout$nrow * 5
   }
 
   attr(plot, "width") <- width
@@ -422,7 +422,7 @@
         }
 
         # .create_classic_boxplot expects (data, cat_var, con_var, title, xlab, ylab, stats)
-        title <- paste0("CPTAC-", ct)
+        title <- paste0("TCGA-", ct)
 
         # X轴（分类变量）：只显示变量名
         xlab <- gsub("\\s*\\(.*", "", cat_var)
@@ -524,14 +524,14 @@
         plot <- plot_list[[1]]
         var1_col <- .extract_colname_from_label(var1_features, data)[1]
         n_categories <- length(unique(data[[var1_col]][!is.na(data[[var1_col]])]))
-        width <- 2.6 + n_categories * 0.35
+        width <- 2.8 + n_categories * 0.35
         height <- 5
       } else {
         # Multiple plots: use patchwork
         layout <- .calc_facet_layout(length(plot_list))
         plot <- patchwork::wrap_plots(plot_list, ncol = layout$ncol, nrow = layout$nrow)
 
-        width <- layout$ncol * 3.3
+        width <- layout$ncol * 3.5
         height <- layout$nrow * 5
       }
 
@@ -580,7 +580,7 @@
       fill_name = metric_name,
       palette = "RdBu",
       x_text_angle = 45,
-      title = if (n_cancers == 1) paste0("CPTAC-", cancer_type[1]) else "CPTAC Multi-Cancer",
+      title = if (n_cancers == 1) paste0("TCGA-", cancer_type[1]) else "CPTAC Multi-Cancer",
       xlab = "",
       ylab = ""
     )
@@ -602,7 +602,7 @@
 
     plot <- .create_classic_boxplot(
       data, cat_var, con_var,
-      title = paste0("CPTAC-", cancer_type[1]),
+      title = paste0("TCGA-", cancer_type[1]),
       subtitle = paste0(con_var, " by ", cat_var),
       stats = pair_stats
     )
@@ -638,7 +638,7 @@
 
       p <- .create_classic_boxplot(
         ct_data, cat_var, con_var,
-        title = paste0("CPTAC-", ct),
+        title = paste0("TCGA-", ct),
         stats = ct_stats
       )
       plot_list[[ct]] <- p
@@ -805,7 +805,7 @@
     ) +
     ggplot2::scale_x_discrete(expand = ggplot2::expansion(add = c(0.6, 0.6))) +
     ggplot2::labs(
-      title = paste0("CPTAC-", cancer_label),
+      title = paste0("TCGA-", cancer_label),
       x = x_axis_label,
       y = "Percentage (%)",
       fill = legend_title,
@@ -815,7 +815,7 @@
     ggplot2::theme(
       plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold", colour = "black"),
       axis.title = ggplot2::element_text(size = 12, colour = "black", face = "bold"),
-      axis.text.x = ggplot2::element_text(size = 11, colour = "black"),
+      axis.text.x = ggplot2::element_text(size = 11, colour = "black", angle = 45, hjust = 1),
       axis.text.y = ggplot2::element_text(size = 10, colour = "black"),
       legend.position = "bottom",
       legend.title = ggplot2::element_text(size = 12, colour = "black", face = "bold"),
@@ -865,8 +865,8 @@
     y = !!rlang::sym(con_var),
     fill = !!rlang::sym(cat_var)
   )) +
-    ggplot2::geom_boxplot(outlier.shape = NA) +
-    ggplot2::geom_jitter(width = 0.1, alpha = 0.4, size = 1.5) +
+    ggplot2::geom_boxplot(outlier.colour = "grey30", outlier.size = 0.1) +
+    # ggplot2::geom_jitter(width = 0.1, alpha = 0.4, size = 1,color = 'grey') +
     ggplot2::scale_fill_manual(values = colors) +
     ggplot2::labs(
       title = title,
@@ -879,9 +879,10 @@
       plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
       plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 11),
       axis.title = ggplot2::element_text(size = 12, colour = "black", face = "bold"),
-      axis.text = ggplot2::element_text(size = 11, colour = "black"),
+      axis.text.y = ggplot2::element_text(size = 10, colour = "black"),
+      axis.text.x = ggplot2::element_text(size = 11, colour = "black", angle = 45, hjust = 1),
       legend.position = "none",
-      plot.caption = ggplot2::element_text(hjust = 0, size = 9)
+      plot.caption = ggplot2::element_text(hjust = 0, size = 8)
     )
 
   return(p)
@@ -1140,7 +1141,7 @@
 
   # Build main title and caption
   title_text <- if (!is.null(cancer_type)) {
-    paste0("CPTAC-", cancer_type)
+    paste0("TCGA-", cancer_type)
   } else {
     "CPTAC Network Plot"
   }
@@ -1198,6 +1199,21 @@
   library(dplyr)
   library(rlang)
 
+  # Check if gsea_stats is empty
+  if (is.null(gsea_stats) || nrow(gsea_stats) == 0) {
+    stop("No GSEA results to plot. GSEA returned 0 pathways.\n",
+      "Possible causes:\n",
+      "  1. DEA did not find enough significant genes\n",
+      "  2. Gene ID mapping issues\n",
+      "  3. GSEA parameters (minSize/maxSize) filtered out all pathways\n",
+      "Try:\n",
+      "  - Check DEA results in result$raw_data\n",
+      "  - Use a different database or category\n",
+      "  - Check if your genes are properly annotated",
+      call. = FALSE
+    )
+  }
+
   # 使用top_n参数控制显示的pathway数量
   pos_pathways <- gsea_stats %>%
     dplyr::filter(NES > 0) %>%
@@ -1210,7 +1226,7 @@
 
   # Build title
   cancer_str <- if (length(cancer_types) > 1) "Database" else cancer_types[1]
-  main_title <- paste0(enrich_type, " Enrichment of ", var_name, " ", omics_type, " in CPTAC-", cancer_str)
+  main_title <- paste0(enrich_type, " Enrichment of ", var_name, " ", omics_type, " in TCGA-", cancer_str)
 
   # Build caption
   if (omics_type == "Mutation") {
@@ -1226,17 +1242,23 @@
   }
   caption_text <- paste0(caption_text, ")")
 
-  if (nrow(pos_pathways) > 0 && nrow(neg_pathways) > 0) {
-    # 根据变量类型设置子图标题
-    if (omics_type == "Mutation") {
-      pos_title <- "Positive Terms (Mutation vs WildType)"
-      neg_title <- "Negative Terms (Mutation vs WildType)"
-    } else {
-      pos_title <- "Positive Terms (Positive Correlation)"
-      neg_title <- "Negative Terms (Negative Correlation)"
-    }
+  # 根据变量类型设置子图标题
+  if (omics_type == "Mutation") {
+    pos_title <- "Positive Terms (Mutation vs WildType)"
+    neg_title <- "Negative Terms (Mutation vs WildType)"
+  } else {
+    pos_title <- "Positive Terms (Positive Correlation)"
+    neg_title <- "Negative Terms (Negative Correlation)"
+  }
 
-    # Create separate plots for positive and negative
+  # 修复：负NES使用BrBG色系的reverse
+  brbrg_colors <- c(
+    "#003c30", "#01665e", "#35978f", "#80cdc1", "#c7eae5",
+    "#f6e8c3", "#dfc27d", "#bf812d", "#8c510a", "#543005"
+  )
+
+  # Create positive plot (or empty plot if no pathways)
+  if (nrow(pos_pathways) > 0) {
     plot_pos <- .custom_gsea_dot(
       res = pos_pathways,
       type = "Positive",
@@ -1246,13 +1268,23 @@
       title = pos_title,
       legend.position = "right"
     )
+  } else {
+    # Create empty plot with message
+    plot_pos <- ggplot2::ggplot() +
+      ggplot2::annotate("text",
+        x = 0.5, y = 0.5,
+        label = "No significant pathways\n(NES > 0)",
+        size = 5, color = "gray50"
+      ) +
+      ggplot2::ggtitle(pos_title) +
+      ggplot2::theme_void() +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12)
+      )
+  }
 
-    # 修复：负NES使用BrBG色系的reverse，不用abs
-    brbrg_colors <- c(
-      "#003c30", "#01665e", "#35978f", "#80cdc1", "#c7eae5",
-      "#f6e8c3", "#dfc27d", "#bf812d", "#8c510a", "#543005"
-    )
-
+  # Create negative plot (or empty plot if no pathways)
+  if (nrow(neg_pathways) > 0) {
     plot_neg <- .custom_gsea_dot(
       res = neg_pathways,
       type = "Negative",
@@ -1261,87 +1293,56 @@
       cutoff.P = 1,
       title = neg_title,
       legend.position = "right",
-      colors = rev(brbrg_colors) # reverse色系：NES越负越深，legend显示负值
+      colors = rev(brbrg_colors) # reverse色系：NES越负越深
+    )
+  } else {
+    # Create empty plot with message
+    plot_neg <- ggplot2::ggplot() +
+      ggplot2::annotate("text",
+        x = 0.5, y = 0.5,
+        label = "No significant pathways\n(NES < 0)",
+        size = 5, color = "gray50"
+      ) +
+      ggplot2::ggtitle(neg_title) +
+      ggplot2::theme_void() +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12)
+      )
+  }
+
+  # Combine with patchwork (always use dual panel layout)
+  plot <- patchwork::wrap_plots(plot_pos, plot_neg, ncol = 2) +
+    patchwork::plot_annotation(
+      title = main_title,
+      caption = caption_text,
+      theme = ggplot2::theme(
+        plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14, colour = "black"),
+        plot.caption = ggplot2::element_text(hjust = 0, size = 9, colour = "gray40")
+      )
     )
 
-    # Combine with patchwork
-    plot <- patchwork::wrap_plots(plot_pos, plot_neg, ncol = 2) +
-      patchwork::plot_annotation(
-        title = main_title,
-        caption = caption_text,
-        theme = ggplot2::theme(
-          plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14, colour = "black"),
-          plot.caption = ggplot2::element_text(hjust = 0, size = 9, colour = "gray40")
-        )
-      )
+  # Calculate dimensions based on non-empty pathways
+  n_pathways <- max(nrow(pos_pathways), nrow(neg_pathways))
 
-    n_pathways <- max(nrow(pos_pathways), nrow(neg_pathways))
-
-    # 修复：固定基础宽度 + 基于最大ytext字符长度
-    all_pathway_labels <- c(as.character(pos_pathways$Description), as.character(neg_pathways$Description))
+  if (n_pathways > 0) {
+    # At least one side has pathways
+    all_pathway_labels <- c(
+      if (nrow(pos_pathways) > 0) as.character(pos_pathways$Description) else character(0),
+      if (nrow(neg_pathways) > 0) as.character(neg_pathways$Description) else character(0)
+    )
     max_label_length <- if (length(all_pathway_labels) > 0) max(nchar(all_pathway_labels), na.rm = TRUE) else 50
 
     # 固定基础宽度 + 字符长度调整
-    base_width <- 14 # 固定基础宽度
-    width_adjust <- max_label_length * 0.10 # 基于最大字符长度
+    base_width <- 14
+    width_adjust <- max_label_length * 0.10
     width <- base_width + width_adjust
     width <- min(width, 22) # 设置上限
 
     height <- max(6, 3 + n_pathways * 0.25)
-  } else if (nrow(pos_pathways) > 0) {
-    # 只有positive pathways
-    pos_title <- if (omics_type == "Mutation") {
-      "Positive Terms (Mutation vs WildType)"
-    } else {
-      "Positive Terms (Positive Correlation)"
-    }
-
-    pos_pathways$neg_log10_p <- -log10(pmax(pos_pathways$pvalue, .Machine$double.xmin))
-    plot <- ggforge::DotPlot(
-      data = pos_pathways,
-      x = "NES",
-      y = "Description",
-      size_by = "neg_log10_p",
-      fill_by = "NES",
-      size_name = "-log10(p)",
-      fill_name = "NES",
-      x_text_angle = 45,
-      title = pos_title,
-      xlab = "NES",
-      ylab = ""
-    )
-    # Calculate width based on pathway label length
-    max_label_length <- max(nchar(as.character(pos_pathways$Description)), na.rm = TRUE)
-    width <- max(8, 5 + max_label_length * 0.08)
-    height <- max(6, 3 + nrow(pos_pathways) * 0.25)
-  } else if (nrow(neg_pathways) > 0) {
-    # 只有negative pathways
-    neg_title <- if (omics_type == "Mutation") {
-      "Negative Terms (Mutation vs WildType)"
-    } else {
-      "Negative Terms (Negative Correlation)"
-    }
-
-    neg_pathways$neg_log10_p <- -log10(pmax(neg_pathways$pvalue, .Machine$double.xmin))
-    plot <- ggforge::DotPlot(
-      data = neg_pathways,
-      x = "NES",
-      y = "Description",
-      size_by = "neg_log10_p",
-      fill_by = "NES",
-      size_name = "-log10(p)",
-      fill_name = "NES",
-      x_text_angle = 45,
-      title = neg_title,
-      xlab = "NES",
-      ylab = ""
-    )
-    # Calculate width based on pathway label length
-    max_label_length <- max(nchar(as.character(neg_pathways$Description)), na.rm = TRUE)
-    width <- max(8, 5 + max_label_length * 0.08)
-    height <- max(6, 3 + nrow(neg_pathways) * 0.25)
   } else {
-    stop("No significant pathways found for GSEA plot")
+    # Both sides empty (should rarely happen due to earlier check)
+    width <- 14
+    height <- 6
   }
 
   # GSEA Paired: 使用属性附加width和height
@@ -1465,7 +1466,7 @@
   cancer_str <- if (n_cancers > 1) "Database" else cancer_types[1]
   is_signature <- use_mean && !is.null(feature_list) && length(feature_list) > 1
 
-  title_text <- paste0("CPTAC-", cancer_str)
+  title_text <- paste0("TCGA-", cancer_str)
 
   # 修复：移除subtitle（用户要求）
   # 修复：移除Features信息（用户要求：图中已能看出来）
@@ -1642,7 +1643,7 @@
   n_cancers <- length(unique(cancer_types))
   cancer_str <- if (n_cancers > 1) "Database" else cancer_types[1]
 
-  title_text <- paste0(enrich_type, " Enrichment Matrix in CPTAC-", cancer_str)
+  title_text <- paste0(enrich_type, " Enrichment Matrix in TCGA-", cancer_str)
 
   plot <- patchwork::wrap_plots(plot_pos, plot_neg, ncol = 2) +
     patchwork::plot_annotation(
@@ -1728,6 +1729,12 @@
     var_col <- feature_cols[1]
   }
 
+  # Rename var_col to safe name (avoid special characters like hyphens in miRNA names)
+  # ggforge::CoxPlot internally creates formulas, so column names must be R-safe
+  safe_var_col <- "feature_value"
+  original_var_col <- var_col
+  names(plot_data)[names(plot_data) == var_col] <- safe_var_col
+
   # 1. KM plot using ggforge::KMPlot
   km_plot <- ggforge::KMPlot(
     data = plot_data,
@@ -1738,22 +1745,22 @@
     show_pval = TRUE,
     show_risk_table = FALSE,
     palcolor = c("#41A98E", "#ED6355"),
-    title = paste0("CPTAC-", cancer_type, " (", surv_type, ")"),
+    title = paste0("TCGA-", cancer_type, " (", surv_type, ")"),
     xlab = "Time (years)",
     ylab = "Survival Probability",
     legend.position = "bottom"
   )
 
-  # 2. Cox Curve using ggforge::CoxPlot
+  # 2. Cox Curve using ggforge::CoxPlot (use safe column name)
   cox_plot <- ggforge::CoxPlot(
     data = plot_data,
     time = "time",
     event = "event",
-    var = var_col,
+    var = safe_var_col,
     plot_type = "curve",
     show_cindex = TRUE,
     xlab = paste0(var_name, " (", omics_type, ")"),
-    title = paste0("CPTAC-", cancer_type, " (", surv_type, ")")
+    title = paste0("TCGA-", cancer_type, " (", surv_type, ")")
   )
 
   # 3. Combine with patchwork
@@ -1791,7 +1798,7 @@
       name = ""
     ) +
     ggplot2::labs(
-      title = paste0("CPTAC-", cancer_type, " (", surv_type, ")"),
+      title = paste0("TCGA-", cancer_type, " (", surv_type, ")"),
       caption = "Method: Cox proportional hazards model",
       x = "Hazard Ratio (95% CI)",
       y = ""
@@ -1999,4 +2006,691 @@
     )
 
   return(p)
+}
+
+# ==============================================================================
+# Mutation vs ImmuneCell Heatmap (New visualization for Scenario 6)
+# ==============================================================================
+
+#' Plot mutation vs immune cells as heatmap with barplot
+#' @keywords internal
+.plot_mutation_immune_heatmap <- function(data, stats, cat_features, con_features) {
+  cat_cols <- .extract_colname_from_label(cat_features, data)
+  con_cols <- .extract_colname_from_label(con_features, data)
+
+  # Must be 1 categorical vs multiple continuous
+  if (length(cat_cols) != 1) {
+    stop("Heatmap requires exactly 1 categorical variable", call. = FALSE)
+  }
+
+  cat_col <- cat_cols[1]
+  cat_label <- cat_features[1]
+
+  # Extract mutation variable name (e.g., "TP53" from "TP53 (Mutation, LUAD)")
+  mut_gene <- gsub(" \\(.*", "", cat_label)
+
+  # Prepare data matrix (cells × samples)
+  heatmap_data <- data[, con_cols, drop = FALSE]
+  rownames(heatmap_data) <- rownames(data)
+
+  # Group annotation
+  group_anno <- data[[cat_col]]
+  names(group_anno) <- rownames(data)
+
+  # Remove NA samples
+  valid_samples <- !is.na(group_anno)
+  heatmap_data <- heatmap_data[valid_samples, ]
+  group_anno <- group_anno[valid_samples]
+
+  # Calculate mean difference for each cell type
+  mean_diff <- sapply(con_cols, function(col) {
+    values <- data[[col]]
+    groups <- data[[cat_col]]
+
+    valid_idx <- complete.cases(values, groups)
+    if (sum(valid_idx) < 3) {
+      return(NA)
+    }
+
+    mean_mut <- mean(values[valid_idx & groups == "Mutation"], na.rm = TRUE)
+    mean_wt <- mean(values[valid_idx & groups == "WildType"], na.rm = TRUE)
+
+    return(mean_mut - mean_wt)
+  })
+
+  # Get p-values from stats
+  pvals <- sapply(con_cols, function(col) {
+    idx <- which(stats$continuous == col | stats$categorical == col)
+    if (length(idx) > 0) {
+      return(stats$p_value[idx[1]])
+    } else {
+      return(1)
+    }
+  })
+
+  # Create significance labels
+  sig_labels <- ifelse(pvals < 0.001, "***",
+    ifelse(pvals < 0.01, "**",
+      ifelse(pvals < 0.05, "*", "")
+    )
+  )
+
+  # Sort by absolute mean difference (descending)
+  sort_order <- order(abs(mean_diff), decreasing = TRUE)
+  heatmap_data <- heatmap_data[, sort_order]
+  con_cols <- con_cols[sort_order]
+  mean_diff <- mean_diff[sort_order]
+  pvals <- pvals[sort_order]
+  sig_labels <- sig_labels[sort_order]
+
+  # Create readable cell labels (remove "ImmuneCell" suffix and cancer)
+  cell_labels <- sapply(con_features[sort_order], function(x) {
+    # "B_cells_naive_cibersort (ImmuneCell, LUAD)" → "B_cells_naive_cibersort"
+    gsub(" \\(.*", "", x)
+  })
+  colnames(heatmap_data) <- cell_labels
+
+  # Transpose for heatmap (cells as rows, samples as columns)
+  heatmap_matrix <- t(as.matrix(heatmap_data))
+
+  # Z-score normalization by row (each cell type)
+  heatmap_matrix_scaled <- t(scale(t(heatmap_matrix)))
+
+  # Order columns: WildType first, then Mutation
+  sample_order <- order(group_anno)
+  heatmap_matrix_scaled <- heatmap_matrix_scaled[, sample_order]
+  group_anno_ordered <- group_anno[sample_order]
+
+  # Create top annotation bar
+  require(ComplexHeatmap)
+  require(grid)
+
+  top_anno <- ComplexHeatmap::HeatmapAnnotation(
+    Status = group_anno_ordered,
+    col = list(Status = c("WildType" = "#4393C3", "Mutation" = "#D6604D")),
+    annotation_name_side = "left",
+    annotation_legend_param = list(
+      Status = list(title = mut_gene, title_gp = grid::gpar(fontsize = 11, fontface = "bold"))
+    ),
+    show_annotation_name = FALSE
+  )
+
+  # Create right annotation (barplot of mean difference)
+  right_anno <- ComplexHeatmap::rowAnnotation(
+    MeanDiff = ComplexHeatmap::anno_barplot(
+      mean_diff,
+      gp = grid::gpar(fill = ifelse(mean_diff > 0, "#D6604D", "#4393C3")),
+      border = FALSE,
+      axis_param = list(side = "bottom", labels_rot = 0),
+      width = grid::unit(3, "cm")
+    ),
+    Pvalue = ComplexHeatmap::anno_text(
+      sig_labels,
+      gp = grid::gpar(fontsize = 10),
+      width = grid::unit(1, "cm")
+    ),
+    gap = grid::unit(2, "mm")
+  )
+
+  # Color palette (11 colors from blue to red)
+  colors <- c(
+    "#053061", "#2166AC", "#4393C3", "#92C5DE", "#D1E5F0",
+    "#F7F7F7", "#FDDBC7", "#F4A582", "#D6604D", "#B2182B", "#67001F"
+  )
+
+  # Create heatmap
+  n_cells <- nrow(heatmap_matrix_scaled)
+
+  ht <- ComplexHeatmap::Heatmap(
+    heatmap_matrix_scaled,
+    name = "Z-score",
+    col = circlize::colorRamp2(
+      seq(-2, 2, length.out = 11),
+      colors
+    ),
+
+    # Top annotation
+    top_annotation = top_anno,
+
+    # Right annotation
+    right_annotation = right_anno,
+
+    # Row settings
+    cluster_rows = FALSE, # No clustering, keep sorted by difference
+    row_names_side = "left",
+    row_names_gp = grid::gpar(fontsize = 9),
+    show_row_dend = FALSE,
+
+    # Column settings
+    cluster_columns = FALSE, # No clustering, keep grouping
+    show_column_names = FALSE,
+    show_column_dend = FALSE,
+    column_split = group_anno_ordered,
+    column_title = NULL,
+
+    # Heatmap body
+    heatmap_legend_param = list(
+      title = "Z-score",
+      title_gp = grid::gpar(fontsize = 10, fontface = "bold"),
+      labels_gp = grid::gpar(fontsize = 9),
+      legend_height = grid::unit(4, "cm")
+    ),
+
+    # Size
+    width = grid::unit(10, "cm"),
+    height = grid::unit(n_cells * 0.35, "cm")
+  )
+
+  # Create caption
+  n_samples <- length(group_anno_ordered)
+  n_wt <- sum(group_anno_ordered == "WildType")
+  n_mut <- sum(group_anno_ordered == "Mutation")
+
+  caption_text <- sprintf(
+    "Statistical test: Wilcoxon rank-sum test. Significance: * p<0.05, ** p<0.01, *** p<0.001.\nSamples: WildType n=%d, Mutation n=%d (Total n=%d).\nMean Diff = Mean(Mutation) - Mean(WildType).",
+    n_wt, n_mut, n_samples
+  )
+
+  # Draw heatmap
+  plot_obj <- grid::grid.grabExpr({
+    ComplexHeatmap::draw(ht)
+    grid::grid.text(
+      caption_text,
+      x = 0.5, y = 0.02,
+      gp = grid::gpar(fontsize = 8, col = "gray30"),
+      just = "bottom"
+    )
+  })
+
+  # Calculate dimensions
+  plot_width <- 14 # Fixed width
+  plot_height <- max(8, 2 + n_cells * 0.35 + 1) # +1 for caption
+
+  # Wrap in ggplot-compatible object for saving
+  final_plot <- ggplot2::ggplot() +
+    ggplot2::theme_void() +
+    ggplot2::annotation_custom(
+      grid::rasterGrob(plot_obj, interpolate = TRUE),
+      xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf
+    )
+
+  attr(final_plot, "width") <- plot_width
+  attr(final_plot, "height") <- plot_height
+  attr(final_plot, "plot_type") <- "heatmap_immune"
+
+  return(final_plot)
+}
+
+# ==============================================================================
+# Mutation vs ImmuneCell Heatmap (New visualization for Scenario 6)
+# ==============================================================================
+
+#' Plot categorical vs immune cells as heatmap with barplot/dotplot
+#' Supports multi-cancer scenarios by composing multiple heatmaps
+#' @keywords internal
+.plot_categorical_immune_heatmap <- function(data, stats, cat_features, con_features) {
+  cat_cols <- .extract_colname_from_label(cat_features, data)
+  debug_mode <- isTRUE(getOption("sltcga.debug_heatmap"))
+  if (debug_mode) {
+    message(sprintf("[Heatmap] categorical=%d, continuous=%d", length(cat_cols), length(con_features)))
+  }
+
+  if (length(cat_cols) == 0) {
+    stop("Heatmap requires at least one categorical variable", call. = FALSE)
+  }
+
+  if (length(cat_cols) == 1) {
+    return(.plot_categorical_immune_heatmap_single(data, stats, cat_features, con_features))
+  }
+
+  plot_list <- list()
+  plot_widths <- numeric(0)
+  plot_heights <- numeric(0)
+
+  for (i in seq_along(cat_cols)) {
+    cat_col <- cat_cols[i]
+    cat_label <- cat_features[i]
+
+    # Try to parse cancer suffix from label (e.g., "TP53 (Mutation, BRCA_IDC)")
+    cat_cancer <- sub(".*\\(.*?,\\s*([^\\)]+)\\)", "\\1", cat_label)
+    if (identical(cat_cancer, cat_label)) {
+      cat_cancer <- NA_character_
+    }
+
+    # Keep immune cells that match the same cancer (if available)
+    if (!is.na(cat_cancer) && nzchar(cat_cancer)) {
+      cancer_pattern <- paste0(",\\s*", cat_cancer, "\\)")
+      con_idx <- grepl(cancer_pattern, con_features)
+    } else {
+      con_idx <- rep(TRUE, length(con_features))
+    }
+
+    con_features_cat <- con_features[con_idx]
+    if (debug_mode) {
+      message(sprintf(
+        "  [Cat %d/%d] %s -> %d immune cells",
+        i, length(cat_cols), cat_label, length(con_features_cat)
+      ))
+    }
+    if (length(con_features_cat) == 0) {
+      next
+    }
+
+    stats_subset <- stats[
+      stats$categorical == cat_col &
+        stats$continuous %in% .extract_colname_from_label(con_features_cat, data), ,
+      drop = FALSE
+    ]
+
+    plot_obj <- .plot_categorical_immune_heatmap_single(
+      data = data,
+      stats = stats_subset,
+      cat_features = cat_label,
+      con_features = con_features_cat
+    )
+
+    # Hide repeated legends for subsequent panels
+    if (length(plot_list) >= 1) {
+      if ("show_heatmap_legend" %in% slotNames(plot_obj)) {
+        plot_obj@show_heatmap_legend <- FALSE
+      }
+      if ("show_annotation_legend" %in% slotNames(plot_obj)) {
+        plot_obj@show_annotation_legend <- FALSE
+      }
+    }
+
+    plot_grob <- grid::grid.grabExpr({
+      ComplexHeatmap::draw(
+        plot_obj,
+        heatmap_legend_side = "right",
+        annotation_legend_side = "right",
+        newpage = FALSE
+      )
+    })
+
+    gg_obj <- ggplot2::ggplot() +
+      ggplot2::theme_void() +
+      ggplot2::annotation_custom(
+        plot_grob,
+        xmin = -Inf, xmax = Inf,
+        ymin = -Inf, ymax = Inf
+      )
+
+    plot_title <- if (!is.na(cat_cancer) && nzchar(cat_cancer)) {
+      paste0("TCGA-", cat_cancer)
+    } else {
+      cat_label
+    }
+
+    plot_list[[length(plot_list) + 1]] <- gg_obj +
+      ggplot2::labs(title = plot_title) +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(
+          hjust = 0.5,
+          face = "bold",
+          size = 13,
+          margin = ggplot2::margin(b = 5)
+        )
+      )
+
+    width_val <- attr(plot_obj, "width")
+    height_val <- attr(plot_obj, "height")
+    plot_widths <- c(plot_widths, if (is.null(width_val)) 14 else width_val)
+    plot_heights <- c(plot_heights, if (is.null(height_val)) 8 else height_val)
+  }
+
+  if (length(plot_list) == 0) {
+    stop("Heatmap could not be generated (no matching immune-cell features per cancer)", call. = FALSE)
+  }
+
+  combined <- patchwork::wrap_plots(plot_list, ncol = length(plot_list))
+  attr(combined, "width") <- sum(plot_widths)
+  attr(combined, "height") <- max(plot_heights)
+  attr(combined, "plot_type") <- "heatmap_immune_patchwork"
+
+  return(combined)
+}
+
+# Internal helper that assumes exactly one categorical variable
+.plot_categorical_immune_heatmap_single <- function(data, stats, cat_features, con_features) {
+  cat_cols <- .extract_colname_from_label(cat_features, data)
+  con_cols <- .extract_colname_from_label(con_features, data)
+
+  if (length(cat_cols) != 1) {
+    stop("Heatmap requires exactly 1 categorical variable", call. = FALSE)
+  }
+
+  cat_col <- cat_cols[1]
+  cat_label <- cat_features[1]
+
+  # Extract categorical variable name (e.g., "TP53" or "Stage")
+  cat_var_name <- gsub(" \\(.*", "", cat_label)
+
+  # Prepare data
+  group_anno <- data[[cat_col]]
+  names(group_anno) <- rownames(data)
+
+  # Remove NA
+  valid_samples <- !is.na(group_anno)
+  valid_data <- data[valid_samples, ]
+  group_anno <- droplevels(group_anno[valid_samples])
+
+  # Get group levels
+  group_levels <- levels(group_anno)
+  n_groups <- length(group_levels)
+
+  # Check if binary or multi-level
+  is_binary <- (n_groups == 2)
+
+  # Calculate statistics for each cell
+  # For binary: store mean_diff (group2 - group1)
+  # For multi-level: store mean for each group
+  cell_stats <- data.frame(
+    cell = con_cols,
+    pvalue = NA,
+    sig = "",
+    stringsAsFactors = FALSE
+  )
+
+  # Add columns for group means
+  for (grp in group_levels) {
+    cell_stats[[paste0("mean_", grp)]] <- NA
+  }
+
+  if (is_binary) {
+    cell_stats$mean_diff <- NA
+  }
+
+  for (i in seq_along(con_cols)) {
+    col <- con_cols[i]
+    values <- valid_data[[col]]
+    groups <- group_anno
+
+    complete_idx <- complete.cases(values, groups)
+    if (sum(complete_idx) < 3) next
+
+    vals_complete <- values[complete_idx]
+    grps_complete <- groups[complete_idx]
+
+    # Calculate mean for each group
+    for (grp in group_levels) {
+      mean_val <- mean(vals_complete[grps_complete == grp], na.rm = TRUE)
+      cell_stats[i, paste0("mean_", grp)] <- mean_val
+    }
+
+    # Calculate difference for binary
+    if (is_binary) {
+      cell_stats$mean_diff[i] <- cell_stats[i, paste0("mean_", group_levels[2])] -
+        cell_stats[i, paste0("mean_", group_levels[1])]
+    }
+
+    # Get p-value from stats
+    stat_idx <- which(stats$continuous == col)
+    pval <- if (length(stat_idx) > 0) stats$p_value[stat_idx[1]] else NA
+
+    # Handle NA in p-value
+    if (is.na(pval)) {
+      sig <- ""
+    } else {
+      sig <- ifelse(pval < 0.001, "***",
+        ifelse(pval < 0.01, "**",
+          ifelse(pval < 0.05, "*", "")
+        )
+      )
+    }
+
+    cell_stats$pvalue[i] <- pval
+    cell_stats$sig[i] <- sig
+  }
+
+  # Remove NA rows (check first group mean)
+  cell_stats <- cell_stats[!is.na(cell_stats[[paste0("mean_", group_levels[1])]]), ]
+
+  # Sort by difference (binary) or variance (multi-level)
+  if (is_binary) {
+    cell_stats <- cell_stats[order(abs(cell_stats$mean_diff), decreasing = TRUE, na.last = TRUE), ]
+  } else {
+    # For multi-level, sort by variance across groups
+    mean_cols <- paste0("mean_", group_levels)
+    variances <- apply(cell_stats[, mean_cols], 1, function(x) var(x, na.rm = TRUE))
+    cell_stats <- cell_stats[order(variances, decreasing = TRUE, na.last = TRUE), ]
+  }
+
+  # Prepare heatmap matrix (sorted)
+  heatmap_data <- valid_data[, cell_stats$cell, drop = FALSE]
+
+  # Create readable labels
+  cell_labels <- sapply(cell_stats$cell, function(col) {
+    idx <- which(con_cols == col)
+    if (length(idx) > 0) {
+      label <- con_features[idx[1]]
+      # Extract cell name only
+      gsub(" \\(.*", "", label)
+    } else {
+      col
+    }
+  })
+
+  colnames(heatmap_data) <- cell_labels
+
+  # Transpose (cells as rows)
+  heatmap_matrix <- t(as.matrix(heatmap_data))
+
+  # Z-score by row
+  heatmap_matrix_scaled <- t(scale(t(heatmap_matrix)))
+
+  # Order columns by group
+  sample_order <- order(group_anno)
+  heatmap_matrix_scaled <- heatmap_matrix_scaled[, sample_order]
+  group_anno_ordered <- group_anno[sample_order]
+
+  # ComplexHeatmap
+  suppressPackageStartupMessages({
+    require(ComplexHeatmap)
+    require(circlize)
+    require(grid)
+  })
+
+  n_cells <- nrow(heatmap_matrix_scaled)
+
+  # Color scale (11 colors) reused by heatmap + annotations
+  heatmap_colors <- c(
+    "#053061", "#2166AC", "#4393C3", "#92C5DE", "#D1E5F0",
+    "#F7F7F7", "#FDDBC7", "#F4A582", "#D6604D", "#B2182B", "#67001F"
+  )
+  heatmap_col_fun <- circlize::colorRamp2(
+    seq(-2, 2, length.out = length(heatmap_colors)),
+    heatmap_colors
+  )
+
+  right_anno <- NULL
+  mean_heatmap <- NULL
+  sig_anno <- NULL
+
+  # Prepare colors for groups
+  if (is_binary) {
+    group_colors <- c("#4393C3", "#D6604D") # Blue, Red for binary
+    names(group_colors) <- group_levels
+  } else {
+    # For multi-level, use gradient colors
+    if (n_groups <= 4) {
+      group_colors <- c("#4393C3", "#92C5DE", "#F4A582", "#D6604D")[1:n_groups]
+    } else {
+      group_colors <- colorRampPalette(c("#4393C3", "#F7F7F7", "#D6604D"))(n_groups)
+    }
+    names(group_colors) <- group_levels
+  }
+
+  # Top annotation
+  top_anno <- ComplexHeatmap::HeatmapAnnotation(
+    Status = group_anno_ordered,
+    col = list(Status = group_colors),
+    annotation_name_side = "left",
+    annotation_legend_param = list(
+      Status = list(
+        title = cat_var_name,
+        title_gp = grid::gpar(fontsize = 12, fontface = "bold"),
+        labels_gp = grid::gpar(fontsize = 10)
+      )
+    ),
+    show_annotation_name = FALSE,
+    height = grid::unit(0.6, "cm")
+  )
+
+  # Right annotation: barplot (binary) or mini heatmap (multi-level)
+  if (is_binary) {
+    right_anno <- ComplexHeatmap::rowAnnotation(
+      `Mean Diff` = ComplexHeatmap::anno_barplot(
+        cell_stats$mean_diff,
+        gp = grid::gpar(fill = ifelse(cell_stats$mean_diff > 0, "#D6604D", "#4393C3")),
+        border = FALSE,
+        axis_param = list(
+          side = "bottom",
+          labels_rot = 0,
+          gp = grid::gpar(fontsize = 10)
+        ),
+        width = grid::unit(4.5, "cm")
+      ),
+      ` ` = ComplexHeatmap::anno_text(
+        cell_stats$sig,
+        gp = grid::gpar(fontsize = 12, fontface = "bold"),
+        width = grid::unit(1, "cm")
+      ),
+      gap = grid::unit(3, "mm"),
+      annotation_name_gp = grid::gpar(fontsize = 11),
+      annotation_name_rot = 0
+    )
+  } else {
+    mean_cols <- paste0("mean_", group_levels)
+    means_matrix <- as.matrix(cell_stats[, mean_cols, drop = FALSE])
+    rownames(means_matrix) <- cell_labels
+    means_matrix <- means_matrix[rownames(heatmap_matrix_scaled), , drop = FALSE]
+
+    mean_min <- suppressWarnings(min(means_matrix, na.rm = TRUE))
+    mean_max <- suppressWarnings(max(means_matrix, na.rm = TRUE))
+    if (!is.finite(mean_min) || !is.finite(mean_max)) {
+      mean_min <- -1
+      mean_max <- 1
+    }
+    if (mean_min == mean_max) {
+      mean_min <- mean_min - 1e-6
+      mean_max <- mean_max + 1e-6
+    }
+
+    mean_col_fun <- circlize::colorRamp2(
+      seq(mean_min, mean_max, length.out = length(heatmap_colors)),
+      heatmap_colors
+    )
+
+    mean_heatmap <- ComplexHeatmap::Heatmap(
+      means_matrix,
+      name = "Group mean",
+      col = mean_col_fun,
+      cluster_rows = FALSE,
+      cluster_columns = FALSE,
+      show_row_names = FALSE,
+      column_names_side = "bottom",
+      column_names_gp = grid::gpar(fontsize = 9),
+      column_title = NULL,
+      heatmap_legend_param = list(
+        title = "Mean value",
+        title_gp = grid::gpar(fontsize = 10),
+        labels_gp = grid::gpar(fontsize = 9),
+        legend_height = grid::unit(4, "cm")
+      ),
+      na_col = "white",
+      width = grid::unit(max(3, n_groups * 0.7), "cm")
+    )
+
+    sig_anno <- ComplexHeatmap::rowAnnotation(
+      ` ` = ComplexHeatmap::anno_text(
+        cell_stats$sig,
+        gp = grid::gpar(fontsize = 12, fontface = "bold"),
+        width = grid::unit(1, "cm")
+      ),
+      show_annotation_name = FALSE
+    )
+  }
+
+  # Create caption based on test type
+  sample_sizes <- table(group_anno_ordered)
+  sample_text <- paste(paste0(names(sample_sizes), " n=", sample_sizes), collapse = ", ")
+
+  test_method <- if (is_binary) "Wilcoxon rank-sum test" else "Kruskal-Wallis test"
+
+  if (is_binary) {
+    caption <- sprintf(
+      "Statistical test: %s. Significance: * p<0.05, ** p<0.01, *** p<0.001.\nSamples: %s. Mean Diff = Mean(%s) - Mean(%s).",
+      test_method, sample_text, group_levels[2], group_levels[1]
+    )
+  } else {
+    caption <- sprintf(
+      "Statistical test: %s. Significance: * p<0.05, ** p<0.01, *** p<0.001.\nSamples: %s.",
+      test_method, sample_text
+    )
+  }
+
+  # Calculate dimensions
+  heatmap_width <- 12 # Heatmap body width (cm)
+  heatmap_height <- n_cells * 0.5 # Height per cell (cm)
+
+  # Create heatmap
+  ht_main <- ComplexHeatmap::Heatmap(
+    heatmap_matrix_scaled,
+    name = "Z-score",
+    col = heatmap_col_fun,
+    na_col = "white", # Missing values as white
+
+    top_annotation = top_anno,
+    right_annotation = right_anno,
+
+    # Row settings
+    cluster_rows = FALSE,
+    row_names_side = "left",
+    row_names_gp = grid::gpar(fontsize = 10),
+    show_row_dend = FALSE,
+
+    # Column settings
+    cluster_columns = FALSE,
+    show_column_names = FALSE,
+    show_column_dend = FALSE,
+    column_split = group_anno_ordered,
+    column_title = caption, # Caption as column title (below heatmap)
+    column_title_side = "bottom",
+    column_title_gp = grid::gpar(fontsize = 8, col = "grey30"),
+    column_gap = grid::unit(3, "mm"),
+    border = TRUE,
+
+    # Legend
+    heatmap_legend_param = list(
+      title = "Z-score",
+      title_gp = grid::gpar(fontsize = 11, fontface = "bold"),
+      labels_gp = grid::gpar(fontsize = 10),
+      legend_height = grid::unit(5, "cm"),
+      direction = "vertical"
+    ),
+
+    # Size (set internally)
+    width = grid::unit(heatmap_width, "cm"),
+    height = grid::unit(heatmap_height, "cm")
+  )
+
+  if (is_binary) {
+    ht_combined <- ht_main
+  } else {
+    ht_combined <- ht_main + mean_heatmap + sig_anno
+  }
+
+  # Calculate total plot size (for saving)
+  # Total width = left margin + heatmap + right annotations + legend + right margin
+  # Total height = top margin + top anno + heatmap + caption + bottom margin
+  plot_width <- if (is_binary) 14 else 16 # inches
+  plot_height <- max(4, 1.5 + n_cells * 0.2) # inches
+
+  # Store attributes
+  attr(ht_combined, "width") <- plot_width
+  attr(ht_combined, "height") <- plot_height
+  attr(ht_combined, "plot_type") <- "heatmap_immune"
+
+  return(ht_combined)
 }

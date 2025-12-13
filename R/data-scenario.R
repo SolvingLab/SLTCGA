@@ -56,12 +56,11 @@
     })
   }
 
-  # 检查是否是phospho sites
+  # 检查是否是phospho sites (TCGA没有phospho，但保留兼容性)
   var1_is_phospho <- any(grepl("^[STY][0-9]+_", var1_features))
   var2_is_phospho <- any(grepl("^[STY][0-9]+_", var2_features))
 
   # Extract unique gene names
-  # 对phospho，提取实际基因名（去掉site前缀）用于计数
   var1_genes <- unique(extract_gene_name(var1_features, remove_phospho_prefix = var1_is_phospho))
   var2_genes <- unique(extract_gene_name(var2_features, remove_phospho_prefix = var2_is_phospho))
 
@@ -79,59 +78,44 @@
 
   if (var1_class == "continuous" && var2_class == "continuous") {
     # Continuous vs Continuous (Scenarios 1-3)
-    # Use unique gene counts (not feature counts across cancers)
-
     if (n_var1_genes == 1 && n_var2_genes == 1) {
-      # Scenario 1: 1con vs 1con
       scenario_id <- 1
       scenario_name <- "1 continuous vs 1 continuous"
       plot_type <- if (n_cancers == 1) "CorPlot" else "LollipopPlot"
     } else if (n_var1_genes == 1 || n_var2_genes == 1) {
-      # Scenario 2: 1con vs mcon
       scenario_id <- 2
       scenario_name <- "1 continuous vs multiple continuous"
       plot_type <- if (n_cancers == 1) "LollipopPlot" else "DotPlot"
     } else {
-      # Scenario 3: mcon vs mcon
       scenario_id <- 3
       scenario_name <- "multiple continuous vs multiple continuous"
       plot_type <- "DotPlot"
     }
   } else if (var1_class == "categorical" && var2_class == "categorical") {
-    # Categorical vs Categorical → Scenario 7 (Heatmap)
+    # Categorical vs Categorical → Scenario 7
     scenario_id <- 7
-    scenario_name <- "multiple categorical vs multiple categorical"
-    plot_type <- "Heatmap"
+    scenario_name <- "categorical vs categorical"
+    plot_type <- if (n_var1 == 1 && n_var2 == 1) "BarPlot" else "Heatmap"
   } else {
     # Mixed: Categorical vs Continuous (Scenarios 4-6)
-    # S4: 1con vs 1cat → BoxPlot
-    # S5: 1con vs mcat (or mcat vs 1con) → Multiple BoxPlots
-    # S6: mcon vs 1cat (or 1cat vs mcon) → Multiple BoxPlots
-    # S7: mcat vs mcon (or mcon vs mcat) → DotPlot/Heatmap
-    # Use unique gene counts (not feature counts across cancers)
-
     n_con_genes <- if (var1_class == "continuous") n_var1_genes else n_var2_genes
     n_cat_genes <- if (var1_class == "categorical") n_var1_genes else n_var2_genes
 
     if (n_con_genes == 1 && n_cat_genes == 1) {
-      # Scenario 4: 1con vs 1cat
       scenario_id <- 4
       scenario_name <- "1 continuous vs 1 categorical"
       plot_type <- "BoxPlot"
     } else if (n_con_genes == 1 && n_cat_genes > 1) {
-      # Scenario 5: 1con vs mcat
       scenario_id <- 5
       scenario_name <- "1 continuous vs multiple categorical"
       plot_type <- "Multiple_BoxPlots"
     } else if (n_con_genes > 1 && n_cat_genes == 1) {
-      # Scenario 6: mcon vs 1cat
       scenario_id <- 6
       scenario_name <- "multiple continuous vs 1 categorical"
       plot_type <- "Multiple_BoxPlots"
     } else {
-      # Edge case: mcon vs mcat (not in original 7 scenarios, treat as S6)
       scenario_id <- 6
-      scenario_name <- "multiple continuous vs multiple categorical (mixed)"
+      scenario_name <- "multiple continuous vs multiple categorical"
       plot_type <- "Multiple_BoxPlots"
     }
   }
@@ -140,40 +124,8 @@
   # Return scenario info
   # ============================================================================
 
-  # 构建更准确的描述
-  # 检查是否是phospho sites（从原始features检查）
-  var1_is_phospho <- any(grepl("^[STY][0-9]+_", var1_features))
-  var2_is_phospho <- any(grepl("^[STY][0-9]+_", var2_features))
-
-  var1_desc <- if (var1_is_phospho) {
-    # Phospho sites: 总是显示phospho site数量
-    if (n_var1_genes == 1) {
-      sprintf("%d phospho site(s) from 1 gene", n_var1)
-    } else {
-      sprintf("%d phospho site(s) from %d genes", n_var1, n_var1_genes)
-    }
-  } else if (n_var1 != n_var1_genes) {
-    # 多癌种：同一基因跨癌种
-    sprintf("%d feature(s) from %d gene(s) across multiple cancers", n_var1, n_var1_genes)
-  } else {
-    # 普通情况
-    sprintf("%d %s feature(s)", n_var1, var1_class)
-  }
-
-  var2_desc <- if (var2_is_phospho) {
-    # Phospho sites: 总是显示phospho site数量
-    if (n_var2_genes == 1) {
-      sprintf("%d phospho site(s) from 1 gene", n_var2)
-    } else {
-      sprintf("%d phospho site(s) from %d genes", n_var2, n_var2_genes)
-    }
-  } else if (n_var2 != n_var2_genes) {
-    # 多癌种：同一基因跨癌种
-    sprintf("%d feature(s) from %d gene(s) across multiple cancers", n_var2, n_var2_genes)
-  } else {
-    # 普通情况
-    sprintf("%d %s feature(s)", n_var2, var2_class)
-  }
+  var1_desc <- sprintf("%d %s feature(s)", n_var1, var1_class)
+  var2_desc <- sprintf("%d %s feature(s)", n_var2, var2_class)
 
   message(sprintf(
     "\n[Scenario] Detected: Scenario %d - %s",
@@ -182,10 +134,7 @@
   ))
   message(sprintf("  Var1: %s", var1_desc))
   message(sprintf("  Var2: %s", var2_desc))
-  message(sprintf(
-    "  Plot type: %s",
-    plot_type
-  ))
+  message(sprintf("  Plot type: %s", plot_type))
 
   return(list(
     scenario_id = scenario_id,
@@ -232,7 +181,7 @@
                                         analysis_type) {
   n_vars <- length(var_features)
 
-  # Extract unique gene names (without cancer/modal info)
+  # Extract unique gene names
   var_genes <- unique(sapply(var_features, function(feat) {
     gsub(" \\(.*", "", feat)
   }))
@@ -240,7 +189,7 @@
 
   var_class <- if (all(var_types == "continuous")) "continuous" else "categorical"
 
-  # Scenario mapping (use unique gene count)
+  # Scenario mapping
   if (var_class == "categorical") {
     if (n_unique_genes == 1) {
       if (analysis_type == "genome") {
@@ -260,7 +209,7 @@
       } else {
         scenario_id <- 11
         scenario_name <- "multiple categorical vs enrichment"
-        plot_type <- "GSEA_DotPlot_Paired"
+        plot_type <- "GSEA_Matrix"
       }
     }
   } else {
@@ -283,7 +232,7 @@
       } else {
         scenario_id <- 15
         scenario_name <- "multiple continuous vs enrichment"
-        plot_type <- "GSEA_DotPlot_Paired"
+        plot_type <- "GSEA_Matrix"
       }
     }
   }
@@ -326,11 +275,15 @@
                                       n_cancers) {
   n_vars <- length(var_features)
 
-  var_class <- if (all(var_types == "continuous")) "continuous" else if (all(var_types == "categorical")) "categorical" else "mixed"
+  var_class <- if (all(var_types == "continuous")) {
+    "continuous"
+  } else if (all(var_types == "categorical")) {
+    "categorical"
+  } else {
+    "mixed"
+  }
 
   # 简化逻辑：只看features数量
-  # 1个feature → 场景16（KM+Cox）
-  # 多个features → 场景17（Forest plot），无论来源（多癌种/多基因/多phospho sites）
   if (n_vars == 1) {
     scenario_id <- 16
     scenario_name <- "1 variable vs survival"

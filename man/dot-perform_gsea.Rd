@@ -22,11 +22,4 @@
 \description{
 Perform GSEA
 }
-\keyword{(following}
-\keyword{GSEA}
-\keyword{Perform}
-\keyword{fgsea}
-\keyword{implementation)}
 \keyword{internal}
-\keyword{original}
-\keyword{using}

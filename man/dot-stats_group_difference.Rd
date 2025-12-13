@@ -12,21 +12,7 @@
   p_adjust_method = "BH"
 )
 }
-\arguments{
-\item{data}{Data frame}
-
-\item{cat_features}{Character vector of categorical feature labels}
-
-\item{con_features}{Character vector of continuous feature labels}
-
-\item{alpha}{Significance level}
-
-\item{p_adjust_method}{P-value adjustment method}
-}
-\value{
-Data frame with test statistics
-}
 \description{
-Wilcoxon or Kruskal-Wallis test for group differences
+Calculate Group Difference Statistics (Categorical vs Continuous)
 }
 \keyword{internal}

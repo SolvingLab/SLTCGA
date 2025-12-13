@@ -4,7 +4,7 @@
 \alias{.stats_dea_genome}
 \title{Perform genome-wide DEA using BioEnricher}
 \usage{
-.stats_dea_genome(var_data, genome_matrix, var_cancers)
+.stats_dea_genome(var_data, genome_matrix, var_cancers, for_enrichment = FALSE)
 }
 \description{
 Perform genome-wide DEA using BioEnricher

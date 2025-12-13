@@ -14,6 +14,7 @@
   enrich_ont,
   top_n,
   n_workers,
+  rnaseq_type,
   kegg_category,
   msigdb_category,
   hgdisease_source,

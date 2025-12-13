@@ -13,23 +13,7 @@
   p_adjust_method = "BH"
 )
 }
-\arguments{
-\item{data}{Data frame with features}
-
-\item{var1_features}{Character vector of var1 feature column names}
-
-\item{var2_features}{Character vector of var2 feature column names}
-
-\item{method}{Correlation method ("pearson", "spearman", "kendall")}
-
-\item{use}{Missing value handling}
-
-\item{p_adjust_method}{P-value adjustment method}
-}
-\value{
-Data frame with correlation statistics
-}
 \description{
-General correlation function for continuous vs continuous
+Calculate Correlation Statistics
 }
 \keyword{internal}

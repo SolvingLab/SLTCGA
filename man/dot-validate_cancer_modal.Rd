@@ -2,30 +2,23 @@
 % Please edit documentation in R/utils.R
 \name{.validate_cancer_modal}
 \alias{.validate_cancer_modal}
-\title{Validate Cancer and Modal Availability}
+\title{Validate cancer type and modal availability}
 \usage{
-.validate_cancer_modal(
-  cancer_ids,
-  modal_type,
-  surv_type = NULL,
-  stop_on_error = TRUE
-)
+.validate_cancer_modal(cancers, modal, surv_type = NULL, stop_on_error = TRUE)
 }
 \arguments{
-\item{cancer_ids}{Character vector of cancer IDs (e.g., c("BRCA", "LUAD"))}
+\item{cancers}{Character vector of cancer types}
 
-\item{modal_type}{Character. Modal type: "RNAseq", "Protein", "Phospho",
-"Methylation", "logCNA", "Mutation", "Clinical", "Survival"}
+\item{modal}{Character, modal type}
 
-\item{surv_type}{Character or NULL. If modal_type="Survival", specify "OS" or "PFS"}
+\item{surv_type}{Character, survival type (for Survival modal)}
 
-\item{stop_on_error}{Logical. If TRUE, stops execution. If FALSE, returns warning.}
+\item{stop_on_error}{Logical, whether to stop on error}
 }
 \value{
-Invisible TRUE if validation passes
+TRUE if all valid
 }
 \description{
-Internal function to validate cancer IDs and check if specified modal types
-are available for those cancers. Provides helpful messages if data is missing.
+Validate cancer type and modal availability
 }
 \keyword{internal}
