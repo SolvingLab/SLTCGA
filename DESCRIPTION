@@ -10,30 +10,15 @@ Description: Comprehensive R package for systematic analysis of multi-omics data
     and immune cell infiltration. Supports 33 main cancer types plus 32 molecular subtypes.
 License: GPL (>= 3)
 Encoding: UTF-8
+Depends: R (>= 4.0.0)
+Imports: dplyr, ggplot2, survival, patchwork, tidyr, rlang, igraph,
+        ggraph, fgsea, limma, ComplexHeatmap, geneset,
+        genekitr2, qs, jsonlite, parallel,
+        ggnewscale, ggrepel, scales, circlize, methods, grid
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 LazyData: true
-Depends: 
-    R (>= 4.0.0)
-Imports:
-    dplyr,
-    ggplot2,
-    survival,
-    patchwork,
-    tidyr,
-    rlang,
-    igraph,
-    ggraph,
-    fgsea,
-    limma,
-    ComplexHeatmap,
-    ggforge,
-    geneset,
-    genekitr2,
-    astat,
-    qs,
-    jsonlite,
-    parallel
-Suggests:
-    testthat (>= 3.0.0),
-    knitr,
-    rmarkdown
 RoxygenNote: 7.3.3
+NeedsCompilation: no
+Packaged: 2026-03-13 13:31:28 UTC; liuzaoqu
+Author: Zaoqu Liu [aut, cre]
+Maintainer: Zaoqu Liu <liuzaoqu@163.com>

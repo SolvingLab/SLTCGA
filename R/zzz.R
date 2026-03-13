@@ -3,6 +3,7 @@
 # ==============================================================================
 
 .onLoad <- function(libname, pkgname) {
+  .ggforge_init()
   # Check SL_BULK_DATA environment variable
   bulk_data <- Sys.getenv("SL_BULK_DATA")
 

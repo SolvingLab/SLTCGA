@@ -23,7 +23,7 @@
 
   cor_data <- data[, c(var1_cols, var2_cols), drop = FALSE]
 
-  cor_result <- astat::stat_cor(
+  cor_result <- stat_cor(
     x = cor_data,
     cor.method = method,
     use = use,
@@ -357,7 +357,7 @@
   genome_values_t <- t(genome_values)
   rownames(genome_values_t) <- common_samples
 
-  cor_result <- astat::stat_cor(
+  cor_result <- stat_cor(
     x = var_df,
     y = as.data.frame(genome_values_t),
     cor.method = method,
