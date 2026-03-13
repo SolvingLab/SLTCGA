@@ -402,22 +402,18 @@ TCGA_COMBINED_MAP <- list(
 # Gene Filtering
 # ==============================================================================
 
-#' Get protein-coding genes from BioEnricher
+#' Get protein-coding gene symbols (embedded list)
 #' @keywords internal
 .get_protein_coding_genes <- function() {
-  if (!requireNamespace("BioEnricher", quietly = TRUE)) {
-    warning("BioEnricher not available, cannot filter protein-coding genes")
-    return(NULL)
-  }
-
   tryCatch(
     {
-      gene_info <- BioEnricher::hs_geneinfo
-      protein_genes <- gene_info$symbol[gene_info$gene_biotype == "protein_coding"]
-      message(sprintf(
-        "  Filtering to %d protein-coding genes (from %d total)",
-        length(protein_genes), nrow(gene_info)
-      ))
+      gene_file <- system.file("extdata", "protein_coding_genes.rds", package = "SLTCGA")
+      if (gene_file == "") {
+        warning("Protein-coding gene list not found in package data")
+        return(NULL)
+      }
+      protein_genes <- readRDS(gene_file)
+      message(sprintf("  Filtering to %d protein-coding genes", length(protein_genes)))
       return(protein_genes)
     },
     error = function(e) {

@@ -2,33 +2,190 @@
 % Please edit documentation in R/helpers.R
 \name{list_variables}
 \alias{list_variables}
-\title{List Variables for a Modal}
+\title{List Variables for Clinical, Signature, or ImmuneCell Modalities}
 \usage{
 list_variables(modal, pattern = NULL, show_groups = TRUE)
 }
 \arguments{
-\item{modal}{Character. Modal type: "Clinical", "Signature", or "ImmuneCell"}
+\item{modal}{Character. Modality type to display (required).
+Options: "Clinical", "Signature", "ImmuneCell".
+Note: RNAseq, Mutation, CNV, Methylation, miRNA use standard gene symbols.}
 
-\item{pattern}{Character. Optional pattern to filter variables}
+\item{pattern}{Character or NULL. Optional regex pattern to filter variables (default: NULL).
+Case-insensitive matching on both variable names and aliases.
+Examples: "TMB", "T_cells", "Age", "Stage".}
 
-\item{show_groups}{Logical. Show variable groups (default: TRUE)}
+\item{show_groups}{Logical. Display variable groups/categories (default: TRUE).
+For Clinical: basic, treatment, outcome, histology, molecular.
+For Signature: immune, metabolic, pathway, stemness, clinical_scores.
+For ImmuneCell: algorithm-based grouping.}
 }
 \value{
-Named vector of variables (invisible)
+Named character vector (invisible):
+  Names = user-friendly aliases, Values = full variable names.
+  Access programmatically: \code{vars <- list_variables(modal = "Clinical")}.
 }
 \description{
-Display available variables for Clinical, Signature, or ImmuneCell modalities.
+Displays available variables for Clinical (66 variables), Signature (58 variables),
+or ImmuneCell (99 cell types) modalities with optional pattern filtering and
+grouping. For RNAseq/Mutation/CNV/Methylation/miRNA, use gene symbols directly
+(~20,000 genes each). Essential for discovering variable names before analysis.
+Returns invisible named vector for programmatic access.
 }
+\details{
+**Clinical Variables (66)**:
+\itemize{
+  \item **Basic** (11): Age, Gender, Race, Ethnicity, Height, Weight, BMI, etc.
+  \item **Treatment** (8): Radiation, Chemotherapy, Immunotherapy, etc.
+  \item **Outcome** (12): Vital_status, Recurrence, Progression, etc.
+  \item **Histology** (18): Histology_type, Grade, Stage, T/N/M, etc.
+  \item **Molecular** (17): MSI_status, TMB_category, HRD_score, etc.
+}
+
+**Signature Variables (58)**:
+\itemize{
+  \item **Immune** (15): CYT, IFNG, TIS, Tcell_inflamed, etc.
+  \item **Metabolic** (8): Glycolysis, OXPHOS, Fatty_acid_metabolism, etc.
+  \item **Pathway** (12): EMT, Angiogenesis, Apoptosis, DNA_repair, etc.
+  \item **Stemness** (6): OCLR, DMPss, ENHss, EREG_METHss, etc.
+  \item **Clinical Scores** (17): TMB, MSI_score, HRD_score, Aneuploidy, etc.
+}
+
+**ImmuneCell Variables (99)**:
+\itemize{
+  \item 8 algorithms: CIBERSORT, xCell, quanTIseq, MCPcounter, TIMER, EPIC, IPS, ESTIMATE
+  \item 11 categories: B_cells, T_cells_CD4, T_cells_CD8, Tregs, NK_cells,
+        Macrophages, DC, Neutrophils, Monocytes, Microenvironment, ESTIMATE
+  \item Use \code{\link{list_immune_cells}()} for detailed cell information
+}
+
+**Filtering with Pattern**:
+\itemize{
+  \item \code{pattern = "TMB"} → Finds TMB, TMB_NonSynonymous, TMB_Nonsilent
+  \item \code{pattern = "T_cells"} → Finds all T cell types
+  \item \code{pattern = "Stage"} → Finds Stage, Stage_T, Stage_N, Stage_M
+}
+}
+\section{User Queries}{
+
+**Clinical Variables**:
+\itemize{
+  \item What clinical variables are available?
+  \item How do I access patient age, gender, or race?
+  \item What treatment information is available?
+  \item Can I analyze tumor stage or grade?
+  \item Is MSI status available?
+  \item What survival endpoints are there?
+  \item How do I find histology information?
+}
+
+**Signature Variables**:
+\itemize{
+  \item What molecular signatures can I analyze?
+  \item How do I access tumor mutation burden (TMB)?
+  \item Is there an EMT score?
+  \item What immune signatures are available?
+  \item Can I analyze hypoxia or angiogenesis?
+  \item Is there a stemness score?
+  \item What metabolic signatures exist?
+  \item How do I find DNA repair signatures?
+}
+
+**ImmuneCell Variables**:
+\itemize{
+  \item What immune cell types are available?
+  \item How many deconvolution algorithms are included?
+  \item Can I analyze CD8+ T cell infiltration?
+  \item Is macrophage infiltration data available?
+  \item What is the difference between CIBERSORT and xCell?
+  \item How do I find regulatory T cells (Tregs)?
+}
+
+**Pattern Filtering**:
+\itemize{
+  \item How do I search for TMB-related variables?
+  \item Can I filter signatures by keyword?
+  \item How do I find all T cell types?
+  \item Can I search for stage-related clinical variables?
+}
+}
+
 \examples{
-\dontrun{
-# List all clinical variables
+\donttest{
+# ===========================================================================
+# Example 1: List all clinical variables
+# ===========================================================================
+# Research Question: What clinical data can I analyze?
+
 list_variables(modal = "Clinical")
 
-# List signature variables
+# Output shows 66 clinical variables grouped by category
+# Use these in tcga_correlation() or tcga_survival()
+
+# ===========================================================================
+# Example 2: List molecular signatures
+# ===========================================================================
+# Research Question: What molecular signatures are available?
+
 list_variables(modal = "Signature")
 
-# Search for TMB-related signatures
+# Output shows 58 signatures: immune, metabolic, pathway, stemness, clinical scores
+
+# ===========================================================================
+# Example 3: Search for TMB-related signatures
+# ===========================================================================
+# Research Question: How do I find tumor mutation burden variables?
+
 list_variables(modal = "Signature", pattern = "TMB")
+
+# Returns: TMB, TMB_NonSynonymous, TMB_Nonsilent
+
+# ===========================================================================
+# Example 4: Programmatic access to variables
+# ===========================================================================
+
+# Get all clinical variables
+clin_vars <- list_variables(modal = "Clinical")
+
+# Get signature names
+sig_names <- names(list_variables(modal = "Signature"))
+
+# Filter immune signatures
+immune_sigs <- list_variables(modal = "Signature", pattern = "immune|CYT|IFNG")
+
+# ===========================================================================
+# Example 5: Explore immune cells (use dedicated function)
+# ===========================================================================
+
+# For ImmuneCell, use list_immune_cells() for better display
+list_immune_cells(algorithm = "cibersort")
+list_immune_cells(category = "T_cells_CD8")
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After finding variable names:
+# 1. Use tcga_correlation(var1 = "Age", var1_modal = "Clinical", ...)
+# 2. Use tcga_correlation(var1 = "TMB", var1_modal = "Signature", ...)
+# 3. Use tcga_survival(var1 = "Stage", var1_modal = "Clinical", ...)
 }
 
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+}
+\seealso{
+\itemize{
+  \item \code{\link{list_modalities}} - View all omics modalities
+  \item \code{\link{search_variables}} - Search across multiple modalities
+  \item \code{\link{list_immune_cells}} - Detailed immune cell information
+  \item \code{\link{get_variable_groups}} - Retrieve predefined variable groups
+  \item \code{\link{tcga_correlation}} - Use variables in correlation analysis
+}
 }

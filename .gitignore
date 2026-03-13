@@ -21,3 +21,4 @@
 # Large data files (add your data directory)
 # bulk_data/
 
+.Rproj.user

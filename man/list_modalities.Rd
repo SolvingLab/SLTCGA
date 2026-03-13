@@ -2,19 +2,144 @@
 % Please edit documentation in R/helpers.R
 \name{list_modalities}
 \alias{list_modalities}
-\title{List All Available Modalities}
+\title{List All Available Data Modalities in TCGA Database}
 \usage{
 list_modalities()
 }
 \value{
-Data frame with modality information (invisible)
+Data frame with 4 columns (invisible):
+  \describe{
+    \item{Modal}{Modality name (e.g., "RNAseq", "Mutation")}
+    \item{Description}{Brief description of data type}
+    \item{N_Variables}{Approximate number of variables}
+    \item{Data_Type}{Variable type ("Continuous", "Categorical", "Mixed")}
+  }
 }
 \description{
-Display all omics layers available in SLTCGA with descriptions.
+Displays comprehensive overview of all 8 data modalities available in SLTCGA:
+5 omics layers (RNAseq, Mutation, CNV, Methylation, miRNA), clinical data
+(Clinical), molecular signatures (Signature), and immune infiltration scores
+(ImmuneCell). Shows data types, variable counts, and descriptions. Essential
+for understanding data structure before using \code{tcga_correlation()},
+\code{tcga_enrichment()}, or \code{tcga_survival()}. Returns invisible data
+frame for programmatic access.
 }
-\examples{
-\dontrun{
-list_modalities()
+\details{
+**8 Data Modalities** (3 categories):
+
+**Multi-Omics Layers** (5 modalities, ~20,000 genes each):
+\itemize{
+  \item **RNAseq**: Gene expression (continuous, multiple normalizations)
+  \item **Mutation**: Somatic mutations (categorical: WildType/Mutation)
+  \item **CNV**: Copy number variations (continuous, multiple algorithms)
+  \item **Methylation**: DNA methylation (continuous, 450K array)
+  \item **miRNA**: MicroRNA expression (1,881 miRNAs, continuous)
 }
 
+**Clinical Data** (1 modality):
+\itemize{
+  \item **Clinical**: Traditional clinical variables (66 variables, mixed types)
+    - Demographics, treatment, outcome, histology, molecular features
+}
+
+**Derived Data** (2 modalities):
+\itemize{
+  \item **Signature**: Molecular signatures and scores (58 variables, mixed types)
+    - Immune, metabolic, pathway, stemness, clinical scores (TMB, MSI, etc.)
+  \item **ImmuneCell**: Immune cell infiltration (99 cell types, continuous)
+    - Deconvolution results from 8 algorithms applied to RNAseq data
+}
+
+**Next Steps**:
+\itemize{
+  \item **Omics layers**: Use gene symbols directly (e.g., "TP53", "BRCA1")
+  \item **Clinical**: Use \code{\link{list_variables}(modal = "Clinical")} to see 66 variables
+  \item **Signature**: Use \code{\link{list_variables}(modal = "Signature")} to see 58 scores
+  \item **ImmuneCell**: Use \code{\link{list_immune_cells}()} to see 99 cell types
+  \item **Cancer types**: Use \code{\link{list_cancer_types}()} to see 65 cancer types
+}
+}
+\section{User Queries}{
+
+**Data Exploration**:
+\itemize{
+  \item What data types are available in SLTCGA?
+  \item What omics layers can I analyze?
+  \item How many genes are covered in TCGA?
+  \item What is the difference between RNAseq and Mutation modalities?
+  \item Which modalities are continuous vs categorical?
+  \item Can I analyze immune cell infiltration?
+  \item What molecular signatures are available?
+  \item How many clinical variables are there?
+  \item What is the difference between omics data and clinical data?
+  \item Are Signature and ImmuneCell original omics or derived data?
+}
+
+**Method Selection**:
+\itemize{
+  \item Which modality should I use for gene expression analysis?
+  \item How do I analyze DNA methylation?
+  \item What modality contains tumor mutation burden (TMB)?
+  \item Which modality has immune cell data?
+  \item Can I analyze miRNA expression?
+  \item What is the ImmuneCell modality?
+}
+}
+
+\examples{
+\donttest{
+# ===========================================================================
+# Example 1: View all available modalities
+# ===========================================================================
+# Research Question: What data types can I analyze in TCGA?
+
+list_modalities()
+
+# Output shows 8 modalities in 3 categories:
+# - Multi-Omics: RNAseq, Mutation, CNV, Methylation, miRNA
+# - Clinical: Clinical variables
+# - Derived: Signature scores, ImmuneCell infiltration
+
+# ===========================================================================
+# Example 2: Programmatic access to modality information
+# ===========================================================================
+
+modals <- list_modalities()
+
+# Check data types
+continuous_modals <- modals$Modal[modals$Data_Type == "Continuous"]
+# Returns: "RNAseq", "CNV", "Methylation", "miRNA", "ImmuneCell"
+
+categorical_modals <- modals$Modal[modals$Data_Type == "Categorical"]
+# Returns: "Mutation"
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After viewing modalities:
+# 1. Use list_variables(modal = "Clinical") to explore clinical variables
+# 2. Use list_immune_cells() to see immune cell types
+# 3. Use list_cancer_types() to see available cancer types
+# 4. Start analysis with tcga_correlation(), tcga_enrichment(), or tcga_survival()
+}
+
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+}
+\seealso{
+\itemize{
+  \item \code{\link{list_variables}} - View variables for specific modality
+  \item \code{\link{search_variables}} - Search variables by keyword
+  \item \code{\link{list_immune_cells}} - View all immune cell types
+  \item \code{\link{list_cancer_types}} - View all cancer types
+  \item \code{\link{tcga_correlation}} - Correlation analysis using modalities
+  \item \code{\link{sltcga_guide}} - Quick reference guide
+}
 }

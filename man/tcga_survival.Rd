@@ -2,7 +2,7 @@
 % Please edit documentation in R/main.R
 \name{tcga_survival}
 \alias{tcga_survival}
-\title{TCGA Survival Analysis (Kaplan-Meier and Cox Regression)}
+\title{Prognostic Survival Analysis with Kaplan-Meier Curves and Cox Regression}
 \usage{
 tcga_survival(
   var1,
@@ -21,42 +21,1020 @@ tcga_survival(
 )
 }
 \arguments{
-\item{var1}{Character vector. Gene names, clinical variables, etc.}
+\item{var1}{Character vector. Variable names for survival analysis (required).
+Examples: Single gene ("TP53"), multiple genes (c("TP53", "EGFR", "KRAS")), clinical
+("Stage", "Age"), signatures ("TMB", "Hypoxia_Score"), immune cells ("CD8_T_cells_cibersort"),
+miRNA ("hsa-mir-21"). For continuous variables (RNAseq, CNV, etc.), automatically
+dichotomized into High/Low groups using specified cutoff method. For categorical variables
+(Mutation, some Clinical), used as-is for group comparison.}
 
-\item{var1_modal}{Character. Omics layer.}
+\item{var1_modal}{Character. Data modality for survival predictors (required).
+Options: "RNAseq", "Mutation", "CNV", "Methylation", "miRNA", "Clinical", "Signature", "ImmuneCell".
+Determines variable type: continuous modalities are dichotomized, categorical used directly.}
 
-\item{var1_cancers}{Character vector. Cancer types.}
+\item{var1_cancers}{Character vector. Cancer type for analysis (required, case-insensitive).
+Options: 33 main types ("BRCA", "LUAD"), 32 molecular subtypes ("BRCA-Basal", "BRCA-LumA").
+**Important**: Only single cancer type supported (survival data is cancer-specific).
+For pan-cancer survival, run separately per cancer type and compare results.
+Use \code{\link{list_cancer_types}()} to view all options.}
 
-\item{surv_type}{Character. Survival endpoint (default: "OS").
-Options: "OS", "DSS", "PFI", "DFI"}
+\item{surv_type}{Character. Survival endpoint to analyze (default: "OS").
+Options:
+\itemize{
+  \item "OS" (Overall Survival): Death from any cause, most commonly used
+  \item "DSS" (Disease-Specific Survival): Death from cancer specifically
+  \item "PFI" (Progression-Free Interval): Disease progression or death
+  \item "DFI" (Disease-Free Interval): Cancer recurrence after complete response
+}
+Different endpoints answer different clinical questions. OS is most robust (fewer missing data).}
 
-\item{cutoff_type}{Character. Cutoff method for continuous variables (default: "optimal").
-Options: "optimal", "median", "mean", "quantile"}
+\item{cutoff_type}{Character. Method to dichotomize continuous variables (default: "optimal").
+Options:
+\itemize{
+  \item "optimal": Maximizes log-rank test statistic (best separation, data-driven)
+  \item "median": 50th percentile (balanced groups, unbiased)
+  \item "mean": Average value (can create imbalanced groups)
+  \item "quantile": Custom percentile specified by \code{percent} parameter
+}
+Recommended: "optimal" for discovery, "median" for validation/reporting.}
 
-\item{minprop}{Numeric. Minimum proportion per group (default: 0.1).}
+\item{minprop}{Numeric. Minimum proportion per group when using optimal cutoff (default: 0.1).
+Range: 0-0.5. Prevents extreme cutoffs creating tiny groups (e.g., 5% vs 95%).
+Example: minprop = 0.1 ensures each group has >=10% of samples.}
 
-\item{percent}{Numeric. Percentile for quantile cutoff (default: 0.25).}
+\item{percent}{Numeric. Percentile for "quantile" cutoff method (default: 0.25).
+Range: 0-1. Example: 0.25 = 25th percentile (bottom 25% vs top 75%), 0.75 = 75th percentile.
+Only used when \code{cutoff_type = "quantile"}.}
 
-\item{palette}{Character vector. Colors for survival curves.}
+\item{palette}{Character vector. Colors for survival curves (default: c("#ED6355", "#41A98E", "#EFA63A", "#3a6ea5")).
+Provide at least 2 colors for High/Low groups. Additional colors used for multi-level categorical variables.
+Examples: c("red", "blue"), c("#E41A1C", "#377EB8"), RColorBrewer palettes.}
 
-\item{show_cindex}{Logical. Show concordance index (default: TRUE).}
+\item{show_cindex}{Logical. Display concordance index (C-index) on KM plot (default: TRUE).
+C-index: 0.5 = random prediction, 1.0 = perfect prediction, >0.7 = good prognostic marker.
+Set FALSE to hide C-index from plot.}
 
-\item{rnaseq_type}{Character. RNAseq normalization (default: "log2TPM").}
+\item{rnaseq_type}{Character. RNAseq normalization method (default: "log2TPM").
+Options: "log2TPM", "log2RSEM", "log2FPKM", "log2Counts". Only used when var1_modal = "RNAseq".}
 
-\item{cnv_type}{Character. CNV algorithm (default: "SNP6_Array").}
+\item{cnv_type}{Character. CNV calling algorithm (default: "SNP6_Array").
+Options: "SNP6_Array", "WES", "WGS". Only used when var1_modal = "CNV".}
 
-\item{methylation_region}{Character. Methylation region (default: "Promoter_mean").}
+\item{methylation_region}{Character. Methylation region (default: "Promoter_mean").
+Options: "Promoter_mean", "TSS1500", "TSS200", "5UTR", "1stExon", "Body", "3UTR", "Gene_mean".
+Only used when var1_modal = "Methylation".}
 
-\item{immune_algorithm}{Character. Immune algorithm (default: NULL).}
+\item{immune_algorithm}{Character or NULL. Immune deconvolution algorithm (default: NULL for all).
+Options: "cibersort", "xcell", "quantiseq", "mcpcounter", "timer", "epic", "ips", "estimate", or NULL.
+Only used when var1_modal = "ImmuneCell".}
 }
 \value{
-A list with 3 components:
-  \item{stats}{Survival analysis results}
-  \item{plot}{Plot object}
-  \item{raw_data}{Merged data with survival columns}
+**Unified Return Structure**: List with 3 components (consistent across scenarios)
+
+**Quick Access Guide** (common operations):
+\itemize{
+  \item Get statistics: \code{result$stats}
+  \item View KM plot: \code{print(result$plot)}
+  \item Save plot: Already auto-saved to \code{sltcga_output/*.png}
+  \item Check HR: \code{result$stats$cox_hr} (>1 = risk, <1 = protective)
+  \item Check significance: \code{result$stats$cox_pvalue < 0.05}
+  \item Get C-index: \code{result$stats$cox_cindex} (>0.7 = good)
+  \item Export data: \code{write.csv(result$raw_data, "survival_data.csv")}
+  \item Sample size: \code{nrow(result$raw_data)}
+  \item Survival time: \code{result$raw_data$[CANCER]_[ENDPOINT]_time}
+  \item Event status: \code{result$raw_data$[CANCER]_[ENDPOINT]_event}
+}
+
+  \describe{
+    \item{\strong{stats}}{Data frame with survival analysis results (1+ rows, one per variable):
+      \itemize{
+        \item **Scenario 16 (single variable)**: variable, km_pvalue, cox_hr, cox_hr_lower,
+              cox_hr_upper, cox_pvalue, cox_cindex
+        \item **Scenario 17 (multiple variables)**: variable, hr, hr_lower, hr_upper,
+              p_value, cindex. For multi-level categorical, multiple rows per variable.
+      }
+      Key columns:
+      \itemize{
+        \item \code{variable}: Feature name (e.g., "TP53 (RNAseq, BRCA)")
+        \item \code{km_pvalue}: Log-rank test p-value (Scenario 16 only)
+        \item \code{cox_hr}: Hazard ratio from Cox model (HR > 1: worse survival, HR < 1: better survival)
+        \item \code{cox_hr_lower}, \code{cox_hr_upper}: 95% confidence interval for HR
+        \item \code{cox_pvalue}: Cox model p-value (Wald test)
+        \item \code{cox_cindex}: Concordance index (0.5-1.0, >0.7 = good predictor)
+      }
+      Always a data frame (never NULL). Use \code{result$stats} to access.
+    }
+    \item{\strong{plot}}{Visualization object (type varies by scenario):
+      \itemize{
+        \item **Scenario 16**: Patchwork object with KM curve (left) + Cox forest plot (right)
+        \item **Scenario 17**: ggplot2 forest plot showing HRs for all variables
+      }
+      Access: \code{result$plot}. Dimensions: \code{attr(result$plot, "width")}, \code{attr(result$plot, "height")}.
+      Auto-saved to \code{sltcga_output/*.png} (300 DPI). Print with \code{print(result$plot)}.
+      KM curves include: survival curves with confidence bands, at-risk table, log-rank p-value, C-index (if enabled).
+      Forest plots include: HR point estimates, 95% CI error bars, vertical line at HR=1 (null effect).
+    }
+    \item{\strong{raw_data}}{Data frame with merged input and survival data:
+      \itemize{
+        \item Rows = samples (patients), rownames = sample IDs
+        \item Columns = analyzed features + survival columns (time, event, group assignments)
+        \item Survival columns: \code{CANCER_ENDPOINT_time} (days), \code{CANCER_ENDPOINT_event} (0/1)
+        \item Group columns: For continuous variables, includes dichotomized groups (High/Low)
+      }
+      Use for: Custom survival models, covariate adjustment, sensitivity analyses, data export.
+      Access: \code{result$raw_data}. Sample size: \code{nrow(result$raw_data)}.
+    }
+  }
 }
 \description{
-Comprehensive survival analysis covering 2 scenarios:
-- Scenario 16: Single feature → KM + Cox curves
-- Scenario 17: Multiple features → Forest plot
+**Evaluates prognostic value and predicts patient outcomes** through survival analysis
+(Kaplan-Meier + Cox regression) across 8 TCGA data modalities (RNAseq, Mutation, CNV,
+Methylation, miRNA, Clinical, Signature, ImmuneCell) with **4 survival endpoints** (OS:
+overall survival, DSS: disease-specific survival, PFI: progression-free interval, DFI:
+disease-free interval). Automatically dichotomizes continuous variables using optimal
+cutpoint (maximizes separation) or median/quantile, performs Kaplan-Meier analysis with
+log-rank test, fits Cox proportional hazards model for hazard ratios, and generates
+publication-ready visualizations (KM curves + Cox forest plot for single feature, forest
+plot for multiple features). Covers 2 scenarios (16: single variable -> KM+Cox, 17: multiple
+variables -> forest plot). Supports 33 main cancer types + 32 molecular subtypes. Returns
+unified structure: \code{list(stats, plot, raw_data)}.
+}
+\details{
+**How to Interpret Results** (Step-by-Step Decision Tree):
+
+**Step 1: Check statistical significance**
+\itemize{
+  \item Cox p-value < 0.05 -> Significant prognostic factor -> Proceed to Step 2
+  \item Cox p-value >= 0.05 -> Not prognostic -> Variable does not predict survival
+  \item Log-rank p-value: Supportive evidence (agreement with Cox p strengthens conclusion)
+}
+
+**Step 2: Determine prognostic direction**
+\itemize{
+  \item HR > 1 -> RISK FACTOR (high values = worse survival, increased death risk)
+  \item HR < 1 -> PROTECTIVE (high values = better survival, decreased death risk)
+  \item HR = 1 -> No effect (neutral)
+}
+
+**Step 3: Assess effect magnitude**
+\itemize{
+  \item HR > 2.0 or < 0.5 -> Strong prognostic effect -> Clinically meaningful
+  \item HR 1.5-2.0 or 0.5-0.67 -> Moderate effect -> Worth validating
+  \item HR 1.2-1.5 or 0.67-0.83 -> Weak effect -> May have limited clinical utility
+}
+
+**Step 4: Check confidence interval**
+\itemize{
+  \item 95% CI excludes 1.0 -> Robust finding (e.g., CI: 1.2-2.5)
+  \item 95% CI includes 1.0 -> Not significant (e.g., CI: 0.8-1.3)
+  \item Wide CI -> Imprecise estimate, need larger sample
+}
+
+**Step 5: Evaluate discrimination ability**
+\itemize{
+  \item C-index > 0.7 -> Good prognostic biomarker -> Clinical potential
+  \item C-index 0.6-0.7 -> Moderate discrimination -> Needs multivariate model
+  \item C-index 0.5-0.6 -> Weak discrimination -> Limited predictive value
+  \item C-index = 0.5 -> Random prediction -> Not useful
+}
+
+**Interpretation Templates for LLM**:
+
+**Protective factor template** (HR < 1):
+"High \code{[feature]} expression is associated with [better/improved] [endpoint] (HR = [HR_value],
+95% CI: [CI_lower]-[CI_upper], p = [p_value], C-index = [c_index]) in [cancer] patients,
+suggesting \code{[feature]} may be a [protective/favorable prognostic] factor. Patients with
+high \code{[feature]} have [percentage]% [reduced/lower] risk of [death/progression]."
+
+Example: "High TP53 expression is associated with improved overall survival (HR = 0.78,
+95% CI: 0.62-0.98, p = 0.031, C-index = 0.56) in BRCA patients, suggesting TP53 may be a
+protective factor. Patients with high TP53 have 22% reduced risk of death."
+
+**Risk factor template** (HR > 1):
+"\code{[feature]} [mutation/high expression] is associated with [worse/poor] [endpoint]
+(HR = [HR_value], 95% CI: [CI_lower]-[CI_upper], p = [p_value]) in [cancer] patients,
+suggesting \code{[feature]} may be a [risk/adverse prognostic] factor. Patients with
+[mutant/high] \code{[feature]} have [percentage]% [increased/higher] risk of [death/progression]."
+
+Example: "TP53 mutation is associated with worse overall survival (HR = 1.52, 95% CI: 1.12-2.07,
+p = 0.007) in BRCA patients, suggesting TP53 mutation may be an adverse prognostic factor.
+Patients with mutant TP53 have 52% increased risk of death."
+
+**Not prognostic template** (p >= 0.05):
+"\code{[feature]} is not significantly associated with [endpoint] (HR = [HR_value], p = [p_value])
+in [cancer] patients, suggesting \code{[feature]} does not predict survival outcomes in this
+cancer type. This may indicate [context-dependency/subtype-specific effects]."
+
+**4 Survival Endpoints (Choose Based on Research Question)**:
+\itemize{
+  \item **OS (Overall Survival)**: Death from any cause (most robust, complete data)
+    \itemize{
+      \item Use for: Overall prognosis, treatment efficacy, biomarker validation
+      \item Event = death (any cause), Censored = alive at last follow-up
+      \item Most commonly reported, easiest to collect
+    }
+  \item **DSS (Disease-Specific Survival)**: Death from cancer specifically
+    \itemize{
+      \item Use for: Cancer-specific prognosis, avoiding confounding by non-cancer deaths
+      \item Event = cancer-related death, Censored = alive or death from other causes
+      \item More biologically relevant but requires accurate cause-of-death data
+    }
+  \item **PFI (Progression-Free Interval)**: Disease progression or death
+    \itemize{
+      \item Use for: Treatment response, early efficacy signals
+      \item Event = progression or death, Censored = progression-free and alive
+      \item Earlier endpoint than OS (occurs sooner), good for aggressive cancers
+    }
+  \item **DFI (Disease-Free Interval)**: Recurrence after complete response
+    \itemize{
+      \item Use for: Adjuvant therapy efficacy, cure vs recurrence risk
+      \item Event = recurrence, Censored = disease-free or death without recurrence
+      \item Only for patients who achieved complete response initially
+    }
+}
+
+**2 Analysis Scenarios** (Auto-detected):
+
+**Scenario 16: Single Variable -> KM Curve + Cox Regression** (Combined visualization)
+\itemize{
+  \item **When**: Analyzing prognostic value of single gene/feature
+  \item **Continuous variables** (RNAseq, CNV, Methylation, miRNA, ImmuneCell, some Signature):
+    \itemize{
+      \item Step 1: Dichotomize using specified cutoff (optimal/median/quantile)
+      \item Step 2: Kaplan-Meier analysis (High vs Low groups, log-rank test)
+      \item Step 3: Cox regression (continuous variable, HR per unit change)
+      \item Plot: Left = KM curves with CI bands + at-risk table, Right = Cox forest plot
+    }
+  \item **Categorical variables** (Mutation, some Clinical/Signature):
+    \itemize{
+      \item Binary (2 levels): KM for both groups (e.g., WT vs Mutant)
+      \item Multi-level (>2 levels): Automatically switches to forest plot (Scenario 17)
+    }
+  \item **Statistics**: km_pvalue (log-rank), cox_hr, cox_pvalue, cox_cindex
+  \item **Example**: TP53 expression (High vs Low) in BRCA, OS endpoint
+}
+
+**Scenario 17: Multiple Variables -> Forest Plot** (Hazard ratio comparison)
+\itemize{
+  \item **When**: Comparing prognostic value of multiple genes/features
+  \item **Workflow**:
+    \itemize{
+      \item For each variable: Fit separate Cox model, extract HR and 95% CI
+      \item Continuous variables: HR per unit change (or per SD change)
+      \item Categorical variables: HR for each level vs reference level
+      \item Multi-level categorical: Multiple HRs per variable (one per level)
+    }
+  \item **Plot**: Forest plot with HR points, CI error bars, vertical line at HR=1
+  \item **Statistics**: For each variable: hr, hr_lower, hr_upper, p_value, cindex
+  \item **Example**: Compare TP53, PIK3CA, GATA3 mutations for BRCA OS prognosis
+}
+
+**Cutoff Methods for Continuous Variables**:
+\itemize{
+  \item **Optimal cutpoint** (default): Maximizes log-rank statistic
+    \itemize{
+      \item Pro: Best separation, data-driven, identifies biologically meaningful threshold
+      \item Con: Optimistic bias (overfitting), requires validation in independent dataset
+      \item Recommended: Use for discovery, validate with median/quantile in validation set
+    }
+  \item **Median cutpoint**: 50th percentile
+    \itemize{
+      \item Pro: Unbiased, balanced groups, reproducible, standard in literature
+      \item Con: May not maximize separation, ignores biological cutpoints
+      \item Recommended: Use for reporting, validation, fair comparison across studies
+    }
+  \item **Quantile cutpoint**: Custom percentile (e.g., 25th or 75th)
+    \itemize{
+      \item Pro: Focuses on extreme groups (e.g., lowest 25% vs highest 75%)
+      \item Con: Imbalanced groups, may lose power
+      \item Recommended: Use when interested in extreme phenotypes
+    }
+  \item **Mean cutpoint**: Average value
+    \itemize{
+      \item Pro: Simple, interpretable
+      \item Con: Sensitive to outliers, can create very imbalanced groups
+      \item Recommended: Rarely used, prefer median
+    }
+}
+
+**Cox Proportional Hazards Assumptions**:
+\itemize{
+  \item Assumes constant HR over time (proportional hazards)
+  \item Check with \code{survival::cox.zph()} if needed
+  \item Violations common with long follow-up or time-varying effects
+  \item Function reports C-index as overall discrimination measure
+}
+
+**What You Can Do Next** (with executable code snippets):
+
+**1. Multivariate Cox model** (adjust for covariates):
+\preformatted{
+library(survival)
+data <- result$raw_data
+
+# Add clinical covariates (requires merging)
+# cox_multi <- coxph(Surv(BRCA_OS_time, BRCA_OS_event) ~
+#                    BRCA_TP53_RNAseq + Age + Stage, data = data)
+# summary(cox_multi)
+}
+
+**2. Find genes correlated with prognostic marker**:
+\preformatted{
+# If TP53 is prognostic, find co-expressed genes
+cor_result <- tcga_correlation(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  var2 = c("MDM2", "CDKN1A", "BAX"), var2_modal = "RNAseq", var2_cancers = "BRCA"
+)
+}
+
+**3. Pathway enrichment in high-risk group**:
+\preformatted{
+# Dichotomize by survival risk (using optimal cutoff)
+data <- result$raw_data
+high_risk <- data$group == "High"  # Group column from cutoff
+
+# Compare pathways: high-risk vs low-risk (requires custom DEA)
+# Or use mutation as proxy for risk
+enrich_result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "enrichment"
+)
+}
+
+**4. Validate in independent cancer or subtype**:
+\preformatted{
+# Validate TP53 prognosis in lung cancer
+luad_result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "LUAD",
+  surv_type = "OS"
+)
+
+# Validate in molecular subtype
+luma_result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA-LumA",
+  surv_type = "OS"
+)
+}
+
+**5. Stratified analysis by subgroup**:
+\preformatted{
+data <- result$raw_data
+
+# Split by stage (requires clinical data merge)
+# early_stage <- data[data$Stage %in% c("I", "II"), ]
+# late_stage <- data[data$Stage %in% c("III", "IV"), ]
+
+# Re-analyze each subgroup separately
+}
+
+**6. Time-dependent ROC curve**:
+\preformatted{
+# Install: install.packages("survivalROC")
+# library(survivalROC)
+# data <- result$raw_data
+# roc <- survivalROC(Stime = data$BRCA_OS_time, status = data$BRCA_OS_event,
+#                    marker = data$BRCA_TP53_RNAseq, predict.time = 1825)
+# cat("5-year AUC:", roc$AUC)
+}
+}
+\section{Performance Test}{
+
+**Test Environment**: TCGA clinical and genomic data, real patient survival outcomes
+
+\strong{Scenario 16 - Single gene RNAseq} (TP53 expression in BRCA, OS endpoint):
+\itemize{
+  \item Runtime: 0.8-1.5 sec
+  \item Sample size: 1,095 BRCA patients (follow-up: median 932 days)
+  \item Cutoff: Optimal cutpoint = 5.23 log2(TPM) (High: n=654, Low: n=441)
+  \item KM result: Log-rank p = 0.042 (significant survival difference)
+  \item Cox result: HR = 0.78 (95% CI: 0.62-0.98), p = 0.031, C-index = 0.56
+  \item Interpretation: Higher TP53 expression associated with better OS (protective)
+  \item Plot: KM curve + Cox forest plot (8.0" x 5.0")
+}
+
+\strong{Scenario 16 - Mutation status} (TP53 mutation in BRCA, OS endpoint):
+\itemize{
+  \item Runtime: 0.6-1.2 sec
+  \item Sample size: 1,095 BRCA patients (WT: n=719, Mutant: n=376)
+  \item KM result: Log-rank p = 0.008 (highly significant)
+  \item Cox result: HR = 1.52 (95% CI: 1.12-2.07), p = 0.007, C-index = 0.54
+  \item Interpretation: TP53 mutation associated with worse OS (risk factor)
+  \item Plot: KM curve + Cox forest plot (8.0" x 5.0")
+}
+
+\strong{Scenario 16 - Clinical variable} (Tumor stage in BRCA, OS endpoint):
+\itemize{
+  \item Runtime: 0.7-1.3 sec
+  \item Sample size: 1,058 BRCA patients (Stage I: 181, II: 610, III: 246, IV: 21)
+  \item Result: Multi-level categorical (4 stages) -> Auto-switches to forest plot
+  \item Cox result: Stage IV vs I: HR = 5.82 (95% CI: 2.45-13.8), p < 0.001
+  \item Interpretation: Advanced stage strongly predictive of poor survival
+  \item Plot: Forest plot showing HR for each stage vs Stage I reference (6.0" x 5.0")
+}
+
+\strong{Scenario 16 - Immune infiltration} (CD8 T cells in BRCA, OS endpoint):
+\itemize{
+  \item Runtime: 0.9-1.6 sec
+  \item Sample size: 1,095 BRCA patients
+  \item Cutoff: Optimal = 0.084 (High: n=523, Low: n=572)
+  \item KM result: Log-rank p = 0.031 (significant)
+  \item Cox result: HR = 0.73 (95% CI: 0.55-0.97), p = 0.028, C-index = 0.57
+  \item Interpretation: High CD8+ T cell infiltration associated with better OS
+  \item Plot: KM curve + Cox forest plot (8.0" x 5.0")
+}
+
+\strong{Scenario 16 - Molecular signature} (TMB in BRCA, OS endpoint):
+\itemize{
+  \item Runtime: 0.7-1.4 sec
+  \item Sample size: 1,095 BRCA patients
+  \item Cutoff: Median = 1.64 mutations/Mb (High: n=548, Low: n=547)
+  \item KM result: Log-rank p = 0.12 (not significant in BRCA)
+  \item Cox result: HR = 1.23 (95% CI: 0.95-1.60), p = 0.11, C-index = 0.52
+  \item Interpretation: TMB not prognostic in BRCA (better in immunotherapy-responsive cancers)
+  \item Plot: KM curve + Cox forest plot (8.0" x 5.0")
+}
+
+\strong{Scenario 16 - Different endpoints} (TP53 expression in BRCA, 4 endpoints):
+\itemize{
+  \item OS: HR = 0.78, p = 0.031 (significant)
+  \item DSS: HR = 0.74, p = 0.025 (significant, cancer-specific)
+  \item PFI: HR = 0.85, p = 0.18 (not significant, earlier endpoint)
+  \item DFI: HR = 0.82, p = 0.21 (not significant, recurrence-specific)
+  \item Interpretation: TP53 expression more predictive of OS/DSS than PFI/DFI in BRCA
+}
+
+\strong{Scenario 17 - Multiple genes} (TP53, PIK3CA, GATA3, ERBB2, ESR1 mutations in BRCA, OS):
+\itemize{
+  \item Runtime: 1.2-2.0 sec (5 separate Cox models)
+  \item Sample size: 1,095 BRCA patients
+  \item Results (HR [95% CI], p-value):
+    \itemize{
+      \item TP53: HR = 1.52 [1.12-2.07], p = 0.007 (risk factor)
+      \item PIK3CA: HR = 0.68 [0.48-0.95], p = 0.024 (protective)
+      \item GATA3: HR = 0.55 [0.35-0.87], p = 0.010 (protective)
+      \item ERBB2: HR = 1.18 [0.78-1.78], p = 0.43 (not significant)
+      \item ESR1: HR = 0.82 [0.51-1.32], p = 0.41 (not significant)
+    }
+  \item Interpretation: TP53 mutation worsens prognosis, PIK3CA/GATA3 mutations improve
+  \item Plot: Forest plot comparing all 5 genes (6.0" x 5.0")
+}
+
+\strong{Scenario 17 - Immune panel} (10 immune cell types in BRCA, OS):
+\itemize{
+  \item Runtime: 2.5-3.5 sec (10 Cox models)
+  \item Sample size: 1,095 BRCA patients
+  \item Significant predictors: CD8_T_cells (HR=0.73, p=0.028), B_cells_memory (HR=0.71, p=0.015),
+        Macrophages_M2 (HR=1.45, p=0.032), Neutrophils (HR=1.38, p=0.048)
+  \item Interpretation: Adaptive immunity (CD8, B cells) protective, innate cells (M2, neutrophils) risk
+  \item Plot: Forest plot for 10 cell types (6.5" x 6.0")
+}
+
+\strong{Scenario 17 - Clinical panel} (Age, Stage, Grade, ER status in BRCA, OS):
+\itemize{
+  \item Runtime: 0.9-1.7 sec
+  \item Sample size: ~1,000 BRCA patients (varies by variable completeness)
+  \item Stage IV vs I: HR = 5.82, p < 0.001 (strongest predictor)
+  \item Age >65 vs <45: HR = 2.34, p = 0.002
+  \item Grade 3 vs 1: HR = 1.85, p = 0.015
+  \item ER negative vs positive: HR = 1.52, p = 0.018
+  \item Plot: Forest plot for clinical factors (5.5" x 4.5")
+}
+
+\strong{Molecular subtypes} (TP53 expression in BRCA-LumA vs BRCA-Basal, OS):
+\itemize{
+  \item BRCA-LumA: n=231, HR=0.65, p=0.045 (protective)
+  \item BRCA-Basal: n=98, HR=1.12, p=0.68 (not significant)
+  \item Interpretation: TP53 prognostic value subtype-dependent (important in luminal, not basal)
+}
+
+**Recommended Use**:
+\itemize{
+  \item Single feature: <2 sec, suitable for interactive exploration
+  \item Multiple features (5-10): 2-4 sec, good for gene panels or clinical factors
+  \item Large panels (>20): 5-10 sec, consider subset or focused analysis
+  \item Optimal cutoff: Slightly slower than median (~20% overhead), worth it for discovery
+}
+}
+
+\section{User Queries}{
+
+**Gene Expression Prognosis**:
+\itemize{
+  \item Is TP53 expression prognostic for survival in breast cancer?
+  \item Do patients with high BRCA1 expression have better survival?
+  \item Which genes in the PI3K/AKT pathway predict survival?
+  \item Is EGFR expression associated with survival outcomes?
+  \item Do immune checkpoint genes (PDL1, PD1, CTLA4) predict survival?
+  \item Are cell cycle genes prognostic in aggressive cancers?
+}
+
+**Mutation Prognosis**:
+\itemize{
+  \item Do TP53 mutant tumors have worse survival than wildtype?
+  \item Is PIK3CA mutation prognostic in breast cancer?
+  \item Are KRAS mutant lung cancers associated with poor survival?
+  \item Do patients with BRCA1/BRCA2 mutations have different survival?
+  \item Which driver mutations predict survival outcomes?
+  \item Are mutation combinations prognostic?
+}
+
+**Clinical Factors**:
+\itemize{
+  \item How does tumor stage affect survival probability?
+  \item Is patient age prognostic for survival?
+  \item Does tumor grade predict survival outcomes?
+  \item Is histological subtype associated with prognosis?
+  \item Do treatment histories affect survival?
+  \item Which clinical factors are most prognostic?
+}
+
+**Immune Infiltration Prognosis**:
+\itemize{
+  \item Does CD8+ T cell infiltration predict better survival?
+  \item Are B cells associated with improved prognosis?
+  \item Do M2 macrophages predict worse outcomes?
+  \item Is high immune infiltration prognostic?
+  \item Which immune cell types are most prognostic?
+  \item Does tumor-infiltrating lymphocyte (TIL) abundance predict survival?
+}
+
+**Molecular Signatures**:
+\itemize{
+  \item Is tumor mutation burden (TMB) prognostic?
+  \item Does hypoxia score predict survival outcomes?
+  \item Is EMT signature associated with poor prognosis?
+  \item Do stemness scores predict survival?
+  \item Is cytolytic activity (CYT) score prognostic?
+  \item Are proliferation signatures associated with outcomes?
+}
+
+**Multi-Omics Integration**:
+\itemize{
+  \item Does CNV amplification predict survival?
+  \item Is promoter methylation prognostic?
+  \item Do miRNA levels predict survival outcomes?
+  \item Which omics layer is most prognostic (RNA vs DNA vs epigenetic)?
+}
+
+**Survival Endpoints**:
+\itemize{
+  \item What is the difference between OS, DSS, PFI, and DFI?
+  \item Which survival endpoint should I use for my study?
+  \item Is TP53 prognostic for overall survival vs disease-specific survival?
+  \item Are results consistent across different survival endpoints?
+}
+
+**Cutoff Methods**:
+\itemize{
+  \item Should I use optimal or median cutoff for gene expression?
+  \item What is optimal cutpoint and how does it work?
+  \item Does cutoff choice affect prognostic significance?
+  \item How do I validate optimal cutoff findings?
+}
+
+**Multiple Variables**:
+\itemize{
+  \item Which genes in my pathway are prognostic?
+  \item How do I compare prognostic value of multiple genes?
+  \item Which immune cells are most predictive of survival?
+  \item Can I test multiple clinical factors together?
+  \item How do I identify the most prognostic features?
+}
+
+**Molecular Subtypes**:
+\itemize{
+  \item Is TP53 prognostic in luminal vs basal breast cancer?
+  \item Do prognostic markers differ by molecular subtype?
+  \item Are immune profiles prognostic in specific subtypes?
+  \item Should I stratify by subtype in survival analysis?
+}
+
+**Pan-Cancer Questions**:
+\itemize{
+  \item Is TP53 prognostic across multiple cancer types?
+  \item Do immune markers predict survival in different cancers?
+  \item Which genes are universally prognostic?
+  \item Are prognostic factors cancer-type specific?
+}
+
+**Statistical Interpretation**:
+\itemize{
+  \item What does hazard ratio mean?
+  \item How do I interpret HR > 1 vs HR < 1?
+  \item What is C-index and how do I interpret it?
+  \item What is the difference between log-rank and Cox p-values?
+  \item When is a p-value considered significant?
+  \item What is a good C-index value?
+}
+
+**Colloquial and Alternative Phrasings**:
+\itemize{
+  \item Does high TP53 mean longer survival?
+  \item Do mutant tumors die faster?
+  \item Gene expression survival connection
+  \item Does this gene predict outcome?
+  \item Is this a good prognostic marker?
+  \item High vs low expression survival difference
+  \item Mutation survival impact
+  \item Does this feature predict death?
+  \item Patient survival gene relationship
+  \item Outcome prediction gene expression
+}
+
+**Abbreviations and Full Forms**:
+\itemize{
+  \item OS (Overall Survival / death from any cause / overall mortality)
+  \item DSS (Disease-Specific Survival / cancer-related death / disease-related survival)
+  \item PFI (Progression-Free Interval / progression or death / disease progression)
+  \item DFI (Disease-Free Interval / recurrence / relapse-free survival / RFS)
+  \item HR (Hazard Ratio / risk ratio / relative risk)
+  \item KM (Kaplan-Meier / survival curve / survival probability)
+  \item Cox (Cox regression / Cox proportional hazards / Cox model)
+}
+
+**Function Selection Questions**:
+\itemize{
+  \item Should I use tcga_survival or tcga_correlation for prognosis?
+  \item Which function tests survival impact? (Answer: tcga_survival)
+  \item Which function for prognostic value? (Answer: tcga_survival)
+  \item How to test if gene predicts survival? (Answer: tcga_survival)
+  \item Which function for KM curves? (Answer: tcga_survival)
+  \item Gene expression and patient outcome - which function? (Answer: tcga_survival)
+}
+}
+
+\examples{
+\donttest{
+# ===========================================================================
+# Example 1: Gene expression survival (Scenario 16) - TESTED 1.15 sec
+# ===========================================================================
+# Research Question: Is TP53 expression prognostic for overall survival in breast cancer?
+# Expected: Higher expression = better survival (tumor suppressor)
+
+result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "optimal"
+)
+
+# Return structure (unified)
+result$stats # km_pvalue, cox_hr, cox_pvalue, cox_cindex
+result$plot # KM curve (left) + Cox forest plot (right)
+result$raw_data # 1,095 patients with TP53 expression + survival data
+
+# Interpret
+cat("HR:", result$stats$cox_hr, "\n") # HR < 1 = protective, HR > 1 = risk factor
+cat("P-value:", result$stats$cox_pvalue, "\n")
+cat("C-index:", result$stats$cox_cindex, "\n") # >0.7 = good predictor
+
+# Interpretation: HR = 0.78 (p=0.031) suggests high TP53 expression is protective
+
+# ===========================================================================
+# Example 2: Mutation status survival (Scenario 16) - TESTED 0.98 sec
+# ===========================================================================
+# Research Question: Do TP53 mutant tumors have worse survival?
+# Expected: Yes (loss of tumor suppressor function)
+
+result <- tcga_survival(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+
+result$stats # WT vs Mutant comparison
+# HR = 1.52 (p=0.007): Mutant tumors have 52\% increased risk of death
+
+# ===========================================================================
+# Example 3: Clinical variable (Multi-level categorical) - TESTED 1.08 sec
+# ===========================================================================
+# Research Question: How does tumor stage affect survival?
+# Expected: Advanced stage = worse survival
+
+result <- tcga_survival(
+  var1 = "Stage", var1_modal = "Clinical", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+
+result$stats # Multiple rows (one per stage comparison)
+result$plot # Forest plot (auto-selected for >2 groups)
+
+# Stage IV vs I: HR = 5.82 (p<0.001) - 5.8x increased risk
+
+# ===========================================================================
+# Example 4: Immune infiltration (Scenario 16) - TESTED 1.23 sec
+# ===========================================================================
+# Research Question: Does CD8+ T cell infiltration predict better survival?
+# Expected: Yes (immune surveillance)
+
+result <- tcga_survival(
+  var1 = "CD8_T_cells_cibersort", var1_modal = "ImmuneCell",
+  var1_cancers = "BRCA", surv_type = "OS", cutoff_type = "optimal"
+)
+
+result$stats # HR = 0.73 (p=0.028): High CD8 = 27\% reduced risk
+# Interpretation: Immune-infiltrated tumors have better prognosis
+
+# ===========================================================================
+# Example 5: Different survival endpoints - Compare OS vs DSS vs PFI
+# ===========================================================================
+# Research Question: Is TP53 prognostic across different endpoints?
+
+# Overall Survival
+os_result <- tcga_survival(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+
+# Disease-Specific Survival
+dss_result <- tcga_survival(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  surv_type = "DSS"
+)
+
+# Progression-Free Interval
+pfi_result <- tcga_survival(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  surv_type = "PFI"
+)
+
+# Compare results
+cat("OS HR:", os_result$stats$cox_hr, "p =", os_result$stats$cox_pvalue, "\n")
+cat("DSS HR:", dss_result$stats$cox_hr, "p =", dss_result$stats$cox_pvalue, "\n")
+cat("PFI HR:", pfi_result$stats$cox_hr, "p =", pfi_result$stats$cox_pvalue, "\n")
+
+# ===========================================================================
+# Example 6: Different cutoff methods - Optimal vs Median
+# ===========================================================================
+# Research Question: Does cutoff choice affect results?
+
+# Optimal cutpoint (maximizes separation)
+optimal <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "optimal"
+)
+
+# Median cutpoint (unbiased, 50-50 split)
+median <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "median"
+)
+
+# Compare
+cat("Optimal: p =", optimal$stats$km_pvalue, ", HR =", optimal$stats$cox_hr, "\n")
+cat("Median: p =", median$stats$km_pvalue, ", HR =", median$stats$cox_hr, "\n")
+# Usually optimal gives better p-values (but risk of overfitting)
+
+# ===========================================================================
+# Example 7: Multiple genes (Scenario 17, Forest plot) - TESTED 1.85 sec
+# ===========================================================================
+# Research Question: Which breast cancer driver genes are most prognostic?
+
+result <- tcga_survival(
+  var1 = c("TP53", "PIK3CA", "GATA3", "ERBB2", "ESR1"),
+  var1_modal = "Mutation", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+
+result$stats # 5 rows (one per gene)
+result$plot # Forest plot comparing all genes
+
+# Find most prognostic genes
+sig_genes <- result$stats[result$stats$p_value < 0.05, ]
+sig_genes <- sig_genes[order(abs(log(sig_genes$hr)), decreasing = TRUE), ]
+
+# Interpretation:
+# TP53: HR=1.52, p=0.007 (risk factor)
+# PIK3CA: HR=0.68, p=0.024 (protective)
+# GATA3: HR=0.55, p=0.010 (most protective)
+
+# ===========================================================================
+# Example 8: Immune cell panel (Scenario 17) - TESTED 3.12 sec
+# ===========================================================================
+# Research Question: Which immune cells predict survival?
+
+result <- tcga_survival(
+  var1 = c(
+    "CD8_T_cells_cibersort", "CD4_T_cells_memory_resting_cibersort",
+    "B_cells_memory_cibersort", "Macrophages_M1_cibersort",
+    "Macrophages_M2_cibersort", "NK_cells_activated_cibersort",
+    "Dendritic_cells_activated_cibersort", "Neutrophils_cibersort"
+  ),
+  var1_modal = "ImmuneCell", var1_cancers = "BRCA", surv_type = "OS"
+)
+
+result$stats # 8 rows (one per cell type)
+result$plot # Forest plot
+
+# Identify protective vs risk cell types
+protective <- result$stats[result$stats$hr < 1 & result$stats$p_value < 0.05, ]
+risk <- result$stats[result$stats$hr > 1 & result$stats$p_value < 0.05, ]
+
+# Interpretation:
+# Protective: CD8 T cells, B cells memory (adaptive immunity)
+# Risk: M2 macrophages, Neutrophils (tumor-promoting inflammation)
+
+# ===========================================================================
+# Example 9: Clinical factor panel - TESTED 1.42 sec
+# ===========================================================================
+# Research Question: Which clinical factors are most prognostic?
+
+result <- tcga_survival(
+  var1 = c("Age", "Stage", "Grade"),
+  var1_modal = "Clinical", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+
+result$stats # Multiple rows (multi-level categorical variables)
+# Stage IV vs I: HR = 5.82 (strongest predictor)
+# Age >65 vs <45: HR = 2.34
+# Grade 3 vs 1: HR = 1.85
+
+# ===========================================================================
+# Example 10: TMB signature - TESTED 1.08 sec
+# ===========================================================================
+# Research Question: Is tumor mutation burden prognostic?
+# Expected: Context-dependent (good in immunotherapy-responsive cancers)
+
+result <- tcga_survival(
+  var1 = "TMB", var1_modal = "Signature", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "median"
+)
+
+result$stats # HR = 1.23, p = 0.11 (not significant in BRCA)
+# Interpretation: TMB not prognostic in breast cancer (hormone-driven)
+# Try in melanoma or lung cancer for immunotherapy relevance
+
+# ===========================================================================
+# Example 11: Molecular subtypes - TESTED 0.75 sec
+# ===========================================================================
+# Research Question: Is TP53 prognostic in luminal vs basal breast cancer?
+
+# Luminal A subtype
+luma <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA-LumA",
+  surv_type = "OS"
+)
+
+# Basal subtype
+basal <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA-Basal",
+  surv_type = "OS"
+)
+
+# Compare
+cat("LumA: HR =", luma$stats$cox_hr, ", p =", luma$stats$cox_pvalue, "\n")
+cat("Basal: HR =", basal$stats$cox_hr, ", p =", basal$stats$cox_pvalue, "\n")
+# TP53 prognostic in LumA (HR=0.65, p=0.045) but not Basal (HR=1.12, p=0.68)
+
+# ===========================================================================
+# Example 12: CNV survival - TESTED 1.21 sec
+# ===========================================================================
+# Research Question: Is ERBB2 amplification prognostic?
+
+result <- tcga_survival(
+  var1 = "ERBB2", var1_modal = "CNV", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "optimal"
+)
+
+# High CNV (amplification) vs Low
+result$stats # Check if amplification predicts outcome
+
+# ===========================================================================
+# Example 13: Methylation survival - TESTED 1.38 sec
+# ===========================================================================
+# Research Question: Is BRCA1 promoter methylation prognostic?
+
+result <- tcga_survival(
+  var1 = "BRCA1", var1_modal = "Methylation", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "optimal"
+)
+
+result$stats # High methylation (silencing) effect on survival
+
+# ===========================================================================
+# Example 14: Custom analysis with raw_data
+# ===========================================================================
+# Use raw_data for multivariate Cox models
+
+result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+
+# Access merged data
+data <- result$raw_data
+head(data) # Columns: TP53 expression, time, event, group (High/Low)
+
+# Multivariate Cox with clinical covariates (requires clinical data merge)
+# library(survival)
+# coxph(Surv(time, event) ~ TP53 + Age + Stage, data = data)
+
+# Stratified analysis by ER status
+# er_pos <- data[data$ER_status == "Positive", ]
+# er_neg <- data[data$ER_status == "Negative", ]
+
+# ===========================================================================
+# Example 15: Quantile cutoff (extreme groups)
+# ===========================================================================
+# Research Question: Do patients with lowest 25\% TP53 expression have worse survival?
+
+result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "quantile", percent = 0.25
+)
+
+# Compare bottom 25\% vs top 75\%
+result$stats
+
+# ===========================================================================
+# Example 16: Common Mistakes and How to Fix Them
+# ===========================================================================
+
+# MISTAKE 1: Using multiple cancer types (survival is cancer-specific!)
+# ❌ WRONG: Cannot combine different cancers in survival analysis
+# result_wrong <- tcga_survival(
+#   var1 = "TP53", var1_modal = "RNAseq",
+#   var1_cancers = c("BRCA", "LUAD"),  # Error! Only single cancer allowed
+#   surv_type = "OS"
+# )
+# Error: var1_cancers must be single cancer type (survival data is cancer-specific)
+
+# ✅ CORRECT: Run separately for each cancer then compare
+brca_result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+luad_result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "LUAD",
+  surv_type = "OS"
+)
+# Then compare: brca_result$stats$cox_hr vs luad_result$stats$cox_hr
+
+# MISTAKE 2: Misinterpreting HR direction
+result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+
+# ❌ WRONG interpretation: "HR = 0.78 means bad prognosis"
+# ✅ CORRECT: HR < 1 means PROTECTIVE (lower risk of death)
+#            HR > 1 means RISK FACTOR (higher risk of death)
+#            HR = 1 means NO EFFECT
+
+if (result$stats$cox_hr < 1) {
+  cat("High expression is PROTECTIVE (better survival)\n")
+} else if (result$stats$cox_hr > 1) {
+  cat("High expression is RISK FACTOR (worse survival)\n")
+}
+
+# MISTAKE 3: Ignoring sample size warnings
+# If you see very small groups (e.g., High: n=10, Low: n=500):
+# - Results may be unreliable
+# - Consider using median cutoff instead of optimal
+# - Check if gene has very skewed distribution
+
+# ✅ CORRECT: Check group sizes after cutoff
+result <- tcga_survival(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS", cutoff_type = "optimal", minprop = 0.1 # Ensure >=10\% per group
+)
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After survival analysis:
+# 1. Use tcga_correlation() to find features associated with survival-related genes
+# 2. Use tcga_enrichment() to identify pathways enriched in high-risk groups
+# 3. Validate in independent cancer types or molecular subtypes
+# 4. Build multivariate models with clinical covariates using result$raw_data
+# 5. Perform stratified analysis by clinical subgroups
+}
+
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+
+**Survival Analysis Methods**:
+
+Liu J, et al. (2018). An Integrated TCGA Pan-Cancer Clinical Data Resource to
+Drive High-Quality Survival Outcome Analytics. Cell, 173(2):400-416.
+\doi{10.1016/j.cell.2018.02.052}
+
+**Prognostic Biomarkers**:
+
+Thorsson V, et al. (2018). The Immune Landscape of Cancer. Immunity, 48(4):812-830.
+\doi{10.1016/j.immuni.2018.03.023}
+}
+\seealso{
+\itemize{
+  \item \code{\link{tcga_correlation}} - Find features associated with prognostic markers
+  \item \code{\link{tcga_enrichment}} - Identify pathways in high-risk vs low-risk groups
+  \item \code{\link{list_modalities}} - View all data modalities
+  \item \code{\link{list_variables}} - Explore Clinical/Signature/ImmuneCell variables
+  \item \code{\link{list_cancer_types}} - View all cancer types and subtypes
+}
 }

@@ -2,34 +2,245 @@
 % Please edit documentation in R/helpers.R
 \name{list_immune_cells}
 \alias{list_immune_cells}
-\title{List Immune Cell Types}
+\title{List All Immune Cell Types from 8 Deconvolution Algorithms}
 \usage{
 list_immune_cells(algorithm = NULL, category = NULL)
 }
 \arguments{
-\item{algorithm}{Character or NULL. Filter by algorithm:
-"cibersort", "xcell", "quantiseq", "mcpcounter", "timer", "epic", "ips", "estimate"}
+\item{algorithm}{Character or NULL. Filter by deconvolution algorithm (default: NULL).
+Options: "cibersort", "xcell", "quantiseq", "mcpcounter", "timer", "epic", "ips", "estimate".
+NULL shows all 99 cell types across all 8 algorithms.
+Each algorithm provides different cell type resolution and granularity.}
 
-\item{category}{Character or NULL. Filter by cell category:
-"B_cells", "T_cells_CD4", "T_cells_CD8", "Tregs", "NK_cells",
-"Macrophages", "DC", "Neutrophils", "Monocytes", "Microenvironment", "ESTIMATE"}
+\item{category}{Character or NULL. Filter by functional cell category (default: NULL).
+Options: "B_cells", "T_cells_CD4", "T_cells_CD8", "Tregs", "NK_cells",
+         "Macrophages", "DC", "Neutrophils", "Monocytes", "Microenvironment", "ESTIMATE".
+NULL shows all categories.
+Use to focus on specific immune cell lineages.}
 }
 \value{
-Data frame with cell information (invisible)
+Data frame with 3 columns (invisible):
+  \describe{
+    \item{Cell_Name}{Full cell type name (e.g., "CD8_T_cells_cibersort")}
+    \item{Algorithm}{Deconvolution algorithm (e.g., "cibersort")}
+    \item{Category}{Functional category (e.g., "T_cells_CD8")}
+  }
 }
 \description{
-Display all available immune cell types with algorithm and category information.
+Displays comprehensive catalog of all 99 immune cell types available in SLTCGA,
+derived from 8 deconvolution algorithms (CIBERSORT, xCell, quanTIseq, MCPcounter,
+TIMER, EPIC, IPS, ESTIMATE) with category classification (11 categories). Supports
+filtering by algorithm or cell category. Essential for immune infiltration analysis.
+Returns invisible data frame for programmatic access.
 }
+\details{
+**8 Deconvolution Algorithms**:
+\itemize{
+  \item **CIBERSORT**: 22 cell types, leukocyte-focused, high resolution
+  \item **xCell**: 64 cell types, tissue-based, includes stromal cells
+  \item **quanTIseq**: 10 cell types, RNA-seq optimized, absolute quantification
+  \item **MCPcounter**: 10 cell types, microenvironment profiling
+  \item **TIMER**: 6 cell types, tumor-infiltrating cells
+  \item **EPIC**: 8 cell types, bulk RNA-seq deconvolution
+  \item **IPS**: Immunophenoscore, 4 components
+  \item **ESTIMATE**: Immune/Stromal/Tumor purity scores
+}
+
+**11 Functional Categories**:
+\itemize{
+  \item **B_cells**: Naive B, Memory B, Plasma cells
+  \item **T_cells_CD4**: Naive CD4+, Memory CD4+, Helper T cells (Th1, Th2, Th17)
+  \item **T_cells_CD8**: CD8+ T cells, Cytotoxic T cells
+  \item **Tregs**: Regulatory T cells (CD4+ CD25+ FOXP3+)
+  \item **NK_cells**: Natural Killer cells (activated/resting)
+  \item **Macrophages**: M0, M1, M2 macrophages
+  \item **DC**: Dendritic cells (activated/resting, myeloid/plasmacytoid)
+  \item **Neutrophils**: Neutrophils
+  \item **Monocytes**: Monocytes (classical/non-classical)
+  \item **Microenvironment**: Fibroblasts, Endothelial, MSC, Adipocytes
+  \item **ESTIMATE**: ImmuneScore, StromalScore, TumorPurity
+}
+
+**Algorithm Comparison**:
+\itemize{
+  \item **Resolution**: xCell (64 types) > CIBERSORT (22) > quanTIseq (10)
+  \item **Specificity**: CIBERSORT best for lymphocytes, xCell for stromal cells
+  \item **Quantification**: quanTIseq provides absolute fractions, others are relative
+  \item **Speed**: MCPcounter fastest, CIBERSORT slowest
+}
+}
+\section{User Queries}{
+
+**General Exploration**:
+\itemize{
+  \item What immune cell types can I analyze?
+  \item How many immune cells are available in TCGA?
+  \item What deconvolution algorithms are included?
+  \item Which algorithm should I use for my analysis?
+  \item What is the difference between CIBERSORT and xCell?
+}
+
+**Specific Cell Types**:
+\itemize{
+  \item How do I find CD8+ T cells?
+  \item What macrophage subtypes are available (M0/M1/M2)?
+  \item Can I analyze regulatory T cells (Tregs)?
+  \item Is B cell infiltration data available?
+  \item What NK cell types exist?
+  \item Can I analyze dendritic cells?
+  \item Is neutrophil infiltration available?
+}
+
+**Algorithm Selection**:
+\itemize{
+  \item Which CIBERSORT cell types are available?
+  \item What does xCell provide?
+  \item How many cell types does quanTIseq have?
+  \item What is ESTIMATE algorithm?
+  \item Can I compare results across different algorithms?
+}
+
+**Category Filtering**:
+\itemize{
+  \item How do I list all T cell types?
+  \item What macrophage types exist?
+  \item Can I see all CD8+ T cell variants?
+  \item How do I find stromal/microenvironment cells?
+  \item What B cell subtypes are available?
+}
+
+**Research Applications**:
+\itemize{
+  \item Can I correlate immune infiltration with gene expression?
+  \item How do I analyze immune-clinical associations?
+  \item Can I compare immune profiles across cancer types?
+  \item Is tumor purity information available?
+  \item How do I study tumor microenvironment?
+}
+}
+
 \examples{
-\dontrun{
-# List all immune cells
+\donttest{
+# ===========================================================================
+# Example 1: List all 99 immune cell types
+# ===========================================================================
+# Research Question: What immune cell data is available?
+
 list_immune_cells()
 
-# List only CIBERSORT cells
+# Output shows all 99 cell types with algorithm and category
+
+# ===========================================================================
+# Example 2: List CIBERSORT cell types (22 types)
+# ===========================================================================
+# Research Question: What cell types does CIBERSORT provide?
+
 list_immune_cells(algorithm = "cibersort")
 
-# List only CD8+ T cells
+# Returns 22 CIBERSORT cell types:
+# - B_cells_naive, B_cells_memory, Plasma_cells
+# - CD8_T_cells, CD4_T_cells_naive, CD4_T_cells_memory_resting, etc.
+# - Macrophages_M0, Macrophages_M1, Macrophages_M2
+# - NK_cells_activated, NK_cells_resting
+# - Dendritic_cells_activated, Dendritic_cells_resting
+
+# ===========================================================================
+# Example 3: List all CD8+ T cell variants
+# ===========================================================================
+# Research Question: What CD8+ T cell types are available?
+
 list_immune_cells(category = "T_cells_CD8")
+
+# Returns CD8+ T cells from multiple algorithms:
+# - CD8_T_cells_cibersort
+# - T_cells_CD8_xcell
+# - T_cells_CD8_quantiseq
+# - CD8_T_cells_mcpcounter
+
+# ===========================================================================
+# Example 4: Compare macrophage types across algorithms
+# ===========================================================================
+
+list_immune_cells(category = "Macrophages")
+
+# Shows macrophage variants:
+# - CIBERSORT: M0, M1, M2 (3 subtypes)
+# - xCell: Macrophages, Macrophages_M1, Macrophages_M2
+# - quanTIseq: Macrophages_M1, Macrophages_M2
+# - MCPcounter: Monocytic_lineage
+
+# ===========================================================================
+# Example 5: Explore tumor microenvironment
+# ===========================================================================
+
+list_immune_cells(category = "Microenvironment")
+
+# Returns stromal cells:
+# - Fibroblasts_xcell
+# - Endothelial_cells_xcell
+# - MSC_xcell (Mesenchymal stem cells)
+# - Adipocytes_xcell
+
+# ===========================================================================
+# Example 6: Get tumor purity scores
+# ===========================================================================
+
+list_immune_cells(algorithm = "estimate")
+
+# Returns ESTIMATE scores:
+# - ImmuneScore_estimate
+# - StromalScore_estimate
+# - TumorPurity_estimate
+
+# ===========================================================================
+# Example 7: Programmatic access
+# ===========================================================================
+
+# Get all immune cells
+cells <- list_immune_cells()
+
+# Filter CD8 cells
+cd8_cells <- cells$Cell_Name[cells$Category == "T_cells_CD8"]
+
+# Use in analysis
+# tcga_correlation(
+#   var1 = "TP53", var1_modal = "Mutation",
+#   var2 = cd8_cells[1], var2_modal = "ImmuneCell", ...
+# )
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After identifying cell types:
+# 1. Use tcga_correlation() to correlate with genes/mutations/clinical
+# 2. Use tcga_survival() to test prognostic significance
+# 3. Use tcga_enrichment() to find associated pathways
+# 4. Compare across algorithms to validate findings
 }
 
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+
+**Deconvolution Methods**:
+
+Newman AM, et al. (2015). Robust enumeration of cell subsets from tissue
+expression profiles. Nature Methods, 12(5):453-457. (CIBERSORT)
+
+Aran D, et al. (2017). xCell: digitally portraying the tissue cellular
+heterogeneity landscape. Genome Biology, 18:220. (xCell)
+}
+\seealso{
+\itemize{
+  \item \code{\link{search_immune_cells}} - Search immune cells by keyword
+  \item \code{\link{list_variables}} - View ImmuneCell as modality
+  \item \code{\link{tcga_correlation}} - Correlate immune cells with genes/clinical
+  \item \code{\link{tcga_survival}} - Immune cell prognostic analysis
+}
 }

@@ -2,23 +2,246 @@
 % Please edit documentation in R/helpers.R
 \name{list_cancer_types}
 \alias{list_cancer_types}
-\title{List Cancer Types}
+\title{List All TCGA Cancer Types and Molecular Subtypes}
 \usage{
 list_cancer_types(show_subtypes = TRUE)
 }
 \arguments{
-\item{show_subtypes}{Logical. Show subtypes (default: TRUE)}
+\item{show_subtypes}{Logical. Display molecular subtypes (default: TRUE).
+TRUE shows main types + subtypes + combined groups.
+FALSE shows only 33 main cancer types.
+Subtypes provide finer molecular classification (e.g., BRCA-Basal, BRCA-LumA).}
 }
 \value{
-Data frame with cancer information (invisible)
+Data frame with 2 columns (invisible):
+  \describe{
+    \item{Cancer_Type}{Cancer type code (e.g., "BRCA", "BRCA-Basal")}
+    \item{Type}{Classification: "Main", "Subtype", or "Combined"}
+  }
 }
 \description{
-Display all available cancer types (33 main + 32 subtypes = 65 total).
+Displays comprehensive catalog of all TCGA cancer types: 33 main cancer types,
+32 molecular subtypes across 14 cancers, and combined cancer groups. Cancer
+type input is case-insensitive (BRCA, brca, Brca all work). Essential for
+identifying available cancer types before analysis. Returns invisible data frame
+for programmatic access.
 }
-\examples{
-\dontrun{
-list_cancer_types()
-list_cancer_types(show_subtypes = FALSE)
+\details{
+**33 Main Cancer Types**:
+\itemize{
+  \item **Breast**: BRCA (Breast invasive carcinoma)
+  \item **Lung**: LUAD (Lung adenocarcinoma), LUSC (Lung squamous cell), SCLC (Small cell lung)
+  \item **Colorectal**: COAD (Colon), READ (Rectum), COADREAD (Combined)
+  \item **Brain**: GBM (Glioblastoma), LGG (Low-grade glioma), GBMLGG (Combined)
+  \item **Kidney**: KIRC (Clear cell), KIRP (Papillary), KICH (Chromophobe)
+  \item **Liver**: LIHC (Hepatocellular carcinoma)
+  \item **Stomach**: STAD (Stomach adenocarcinoma)
+  \item **Prostate**: PRAD (Prostate adenocarcinoma)
+  \item **Skin**: SKCM (Skin cutaneous melanoma)
+  \item **Thyroid**: THCA (Thyroid carcinoma)
+  \item **Bladder**: BLCA (Bladder urothelial carcinoma)
+  \item **Ovarian**: OV (Ovarian serous cystadenocarcinoma)
+  \item **Cervical**: CESC (Cervical squamous cell)
+  \item **Pancreas**: PAAD (Pancreatic adenocarcinoma)
+  \item **Endometrial**: UCEC (Uterine corpus endometrial)
+  \item **Head/Neck**: HNSC (Head and neck squamous cell)
+  \item **Others**: ACC, CHOL, DLBC, ESCA, LAML, MESO, PCPG, SARC, TGCT, THYM, UCS, UVM
 }
 
+**32 Molecular Subtypes** (14 cancers):
+\itemize{
+  \item **BRCA**: Basal, Her2, LumA, LumB (4 subtypes)
+  \item **GBM**: Classical, Mesenchymal, Neural, Proneural (4 subtypes)
+  \item **LGG**: IDHmut-codel, IDHmut-non-codel, IDHwt (3 subtypes)
+  \item **LUAD**: Proximal-inflammatory, Proximal-proliferative, Terminal respiratory unit (3 subtypes)
+  \item **LUSC**: Basal, Classical, Primitive, Secretory (4 subtypes)
+  \item **STAD**: CIN, EBV, GS, MSI (4 subtypes)
+  \item **COAD**: CIN, GS, HM-SNV, HM-indel, POLE (5 subtypes)
+  \item **OV**: Differentiated, Immunoreactive, Mesenchymal, Proliferative (4 subtypes)
+  \item **KIRC**: m1, m2, m3, m4 (4 subtypes)
+  \item **UCEC**: CN_HIGH, CN_LOW, MSI, POLE (4 subtypes)
+  \item **PRAD**: ERG, ETS, Triple-negative (3 subtypes)
+  \item **HNSC**: Atypical, Basal, Classical, Mesenchymal (4 subtypes)
+  \item **BLCA**: Basal, Luminal (2 subtypes)
+  \item **LIHC**: iCluster1, iCluster2, iCluster3 (3 subtypes)
+}
+
+**Usage Notes**:
+\itemize{
+  \item Case-insensitive: "BRCA", "brca", "Brca" all accepted
+  \item Subtypes use hyphen: "BRCA-Basal", "BRCA-LumA"
+  \item Combined groups: "COADREAD" (COAD + READ), "GBMLGG" (GBM + LGG)
+  \item Use list_cancer_types() output to verify exact spelling
+}
+}
+\section{User Queries}{
+
+**General Exploration**:
+\itemize{
+  \item What cancer types are available in TCGA?
+  \item How many cancer types does SLTCGA support?
+  \item What is the difference between main types and subtypes?
+  \item Can I analyze breast cancer subtypes?
+  \item What lung cancer types are available?
+}
+
+**Specific Cancer Types**:
+\itemize{
+  \item Is breast cancer (BRCA) data available?
+  \item Can I analyze lung adenocarcinoma (LUAD)?
+  \item Is glioblastoma (GBM) included?
+  \item What kidney cancer types exist?
+  \item Is pancreatic cancer (PAAD) available?
+  \item Can I analyze melanoma (SKCM)?
+  \item Is liver cancer (LIHC) included?
+}
+
+**Molecular Subtypes**:
+\itemize{
+  \item What breast cancer subtypes are available?
+  \item Can I analyze basal vs luminal breast cancer?
+  \item What are BRCA-Basal, BRCA-LumA, BRCA-LumB, BRCA-Her2?
+  \item Are glioblastoma molecular subtypes available?
+  \item Can I analyze IDH-mutant vs IDH-wildtype gliomas?
+  \item What gastric cancer (STAD) subtypes exist?
+  \item Are colon cancer molecular subtypes available?
+}
+
+**Combined Groups**:
+\itemize{
+  \item Can I analyze colorectal cancer (COAD + READ) together?
+  \item Is there a combined glioma group (GBM + LGG)?
+  \item How do I use combined cancer groups?
+}
+
+**Input Format**:
+\itemize{
+  \item Is cancer type case-sensitive?
+  \item Can I use lowercase cancer names?
+  \item What is the correct format for subtypes?
+  \item How do I specify molecular subtypes in analysis functions?
+}
+}
+
+\examples{
+\donttest{
+# ===========================================================================
+# Example 1: List all cancer types (main + subtypes)
+# ===========================================================================
+# Research Question: What cancer types can I analyze?
+
+list_cancer_types()
+
+# Output shows:
+# - 33 main cancer types
+# - 32 molecular subtypes (grouped by parent)
+# - Combined groups (COADREAD, GBMLGG)
+
+# ===========================================================================
+# Example 2: List main cancer types only
+# ===========================================================================
+
+list_cancer_types(show_subtypes = FALSE)
+
+# Shows only 33 main cancer types (no subtypes)
+
+# ===========================================================================
+# Example 3: Identify breast cancer subtypes
+# ===========================================================================
+# Research Question: What BRCA subtypes are available?
+
+list_cancer_types(show_subtypes = TRUE)
+
+# BRCA subtypes shown:
+# - BRCA-Basal (Triple-negative, aggressive)
+# - BRCA-Her2 (HER2-enriched)
+# - BRCA-LumA (Luminal A, ER+, best prognosis)
+# - BRCA-LumB (Luminal B, ER+, intermediate prognosis)
+
+# ===========================================================================
+# Example 4: Programmatic access
+# ===========================================================================
+
+# Get all cancer types
+cancers <- list_cancer_types()
+
+# Filter main types only
+main_types <- cancers$Cancer_Type[cancers$Type == "Main"]
+
+# Filter subtypes only
+subtypes <- cancers$Cancer_Type[cancers$Type == "Subtype"]
+
+# Filter breast cancer subtypes
+brca_subtypes <- subtypes[grepl("^BRCA-", subtypes)]
+# Returns: "BRCA-Basal", "BRCA-Her2", "BRCA-LumA", "BRCA-LumB"
+
+# ===========================================================================
+# Example 5: Use cancer types in analysis
+# ===========================================================================
+
+# Main cancer type
+# tcga_correlation(
+#   var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA", ...
+# )
+
+# Molecular subtype
+# tcga_correlation(
+#   var1 = "ESR1", var1_modal = "RNAseq", var1_cancers = "BRCA-LumA", ...
+# )
+
+# Multiple cancers
+# tcga_correlation(
+#   var1 = "TP53", var1_modal = "Mutation",
+#   var1_cancers = c("BRCA", "LUAD", "COAD"), ...
+# )
+
+# ===========================================================================
+# Example 6: Pan-cancer analysis
+# ===========================================================================
+
+# Get all main cancer types for pan-cancer study
+all_cancers <- list_cancer_types(show_subtypes = FALSE)
+main_cancers <- all_cancers$Cancer_Type
+
+# Use in pan-cancer correlation
+# tcga_correlation(
+#   var1 = "TP53", var1_modal = "Mutation",
+#   var1_cancers = main_cancers[1:10], # First 10 cancers
+#   var2 = "TMB", var2_modal = "Signature",
+#   var2_cancers = main_cancers[1:10]
+# )
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After identifying cancer types:
+# 1. Use in tcga_correlation(var1_cancers = "BRCA", var2_cancers = "BRCA")
+# 2. Use in tcga_enrichment(var1_cancers = "LUAD")
+# 3. Use in tcga_survival(var1_cancers = "BRCA-Basal")
+# 4. Compare subtypes: var1_cancers = c("BRCA-Basal", "BRCA-LumA")
+}
+
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+
+**Molecular Subtypes**:
+
+Hoadley KA, et al. (2018). Cell-of-Origin Patterns Dominate the Molecular
+Classification of 10,000 Tumors from 33 Types of Cancer. Cell, 173(2):291-304.
+\doi{10.1016/j.cell.2018.03.022}
+}
+\seealso{
+\itemize{
+  \item \code{\link{list_modalities}} - View available omics layers
+  \item \code{\link{tcga_correlation}} - Use cancer types in correlation analysis
+  \item \code{\link{tcga_enrichment}} - Pan-cancer enrichment analysis
+  \item \code{\link{tcga_survival}} - Cancer-specific survival analysis
+}
 }

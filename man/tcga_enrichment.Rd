@@ -2,7 +2,7 @@
 % Please edit documentation in R/main.R
 \name{tcga_enrichment}
 \alias{tcga_enrichment}
-\title{TCGA Enrichment Analysis}
+\title{Genome-Wide Scan and Pathway Enrichment Analysis with GSEA}
 \usage{
 tcga_enrichment(
   var1,
@@ -26,55 +26,1147 @@ tcga_enrichment(
 )
 }
 \arguments{
-\item{var1}{Character vector. Variable names (genes, clinical, signatures, etc.)}
+\item{var1}{Character vector. Query variable names (required).
+Examples: Single gene ("TP53"), multiple genes (c("TP53", "PIK3CA")), mutation status
+("TP53" with modal="Mutation"), clinical ("Stage"), signature ("TMB"), immune cells
+("CD8_T_cells_cibersort"), miRNA ("hsa-mir-21"). Variable type (continuous/categorical)
+determines analysis method (correlation vs DEA). Number of variables affects scenario.}
 
-\item{var1_modal}{Character. Modal type for var1.}
+\item{var1_modal}{Character. Data modality for query variables (required).
+Options: "RNAseq", "Mutation", "CNV", "Methylation", "miRNA", "Clinical", "Signature", "ImmuneCell".
+Determines variable type: continuous (RNAseq, CNV, Methylation, miRNA, ImmuneCell) use
+correlation, categorical (Mutation, some Clinical) use differential expression analysis (DEA).
+**Note**: Clinical variables cannot use genome-wide scan (use \code{tcga_correlation()} instead).}
 
-\item{var1_cancers}{Character vector. Cancer types.}
+\item{var1_cancers}{Character vector. Cancer types for analysis (required, case-insensitive).
+Options: 33 main types ("BRCA", "LUAD"), 32 molecular subtypes ("BRCA-Basal").
+Single or multiple cancers supported. Use \code{\link{list_cancer_types}()} to view all.}
 
-\item{analysis_type}{Character. Type of analysis (default: "enrichment").
-- "genome": Genome-wide scan → NetworkPlot or DotPlot
-- "enrichment": Pathway enrichment (GSEA) → Paired DotPlot or Matrix}
+\item{analysis_type}{Character. Analysis workflow type (default: "enrichment").
+Options:
+\itemize{
+  \item "genome": Genome-wide scan -> Identifies top correlated/DE genes -> Network or Dot plot
+  \item "enrichment": Pathway enrichment (GSEA) -> Tests pathway associations -> GSEA plots
+}
+"genome" discovers individual genes, "enrichment" discovers biological pathways/processes.}
 
-\item{enrich_database}{Character. Database for GSEA (default: "MsigDB").
-Options: "MsigDB", "GO", "KEGG", "Wiki", "Reactome", "Mesh", "HgDisease", "Enrichrdb"}
+\item{enrich_database}{Character. Pathway database for GSEA (default: "MsigDB").
+Options: "MsigDB" (Molecular Signatures), "GO" (Gene Ontology), "KEGG" (pathways),
+"Wiki" (WikiPathways), "Reactome" (reactions), "Mesh" (MeSH terms), "HgDisease" (disease ontology),
+"Enrichrdb" (Enrichr libraries). Only used when \code{analysis_type = "enrichment"}.
+Different databases answer different questions (see Details).}
 
-\item{enrich_ont}{Character. GO sub-ontology (default: "BP"). Only for GO.}
+\item{enrich_ont}{Character. GO sub-ontology (default: "BP").
+Options: "BP" (Biological Process), "CC" (Cellular Component), "MF" (Molecular Function), "ALL".
+Only used when \code{enrich_database = "GO"}. BP most commonly used for pathway analysis.}
 
-\item{genome_modal}{Character. Omics layer for genome scan (default: "RNAseq").
-**Note**: For TCGA, enrichment always uses RNAseq (no Protein data).}
+\item{genome_modal}{Character. Reference genome layer for comparison (default: "RNAseq").
+Options: "RNAseq" only. TCGA enrichment always uses RNAseq as genome-wide reference
+(~20,000 genes). If other modality specified, automatically overridden to "RNAseq" with warning.
+Compares query variable against all genes' mRNA expression.}
 
-\item{method}{Character. Correlation method (default: "pearson").}
+\item{method}{Character. Correlation method for continuous variables (default: "pearson").
+Options: "pearson", "spearman", "kendall". Only used for continuous query variables
+(e.g., RNAseq, CNV, ImmuneCell). Categorical variables use DEA (limma-voom) instead.}
 
-\item{top_n}{Integer. Number of top results to display (default: 50).}
+\item{top_n}{Integer. Number of top results to display in plots (default: 50).
+Range: 10-100 recommended. For genome scan: top N correlated/DE genes shown. For GSEA:
+top N enriched pathways shown. Larger values provide comprehensive view but cluttered plots.}
 
-\item{n_workers}{Integer. Parallel workers for GSEA (default: 6).}
+\item{n_workers}{Integer. Number of parallel workers for GSEA computation (default: 6).
+Range: 1-12 recommended. Higher values speed up GSEA (CPU-intensive) but use more memory.
+Automatically capped at available cores. Use 1 for debugging, 6-8 for production.}
 
-\item{rnaseq_type}{Character. RNAseq normalization (default: "log2TPM").}
+\item{rnaseq_type}{Character. RNAseq normalization method (default: "log2TPM").
+Options: "log2TPM", "log2RSEM", "log2FPKM", "log2Counts". Affects query variable data
+(if var1_modal="RNAseq") and genome-wide reference. Recommended: "log2TPM" (normalized).}
 
-\item{kegg_category}{Character. KEGG category (default: "pathway").}
+\item{kegg_category}{Character. KEGG pathway category (default: "pathway").
+Options: "pathway", "module", "disease", "drug", "network". Only used when
+\code{enrich_database = "KEGG"}. "pathway" most common for functional analysis.}
 
-\item{msigdb_category}{Character. MsigDB collection (default: "H").}
+\item{msigdb_category}{Character. MsigDB collection (default: "H").
+Options: "H" (hallmark, 50 pathways), "C1" (positional), "C2" (curated, 5,000+),
+"C3" (regulatory targets), "C4" (computational), "C5" (GO), "C6" (oncogenic),
+"C7" (immunologic), "C8" (cell type). Only used when \code{enrich_database = "MsigDB"}.
+Recommended: "H" (focused), "C2" (comprehensive), "C5" (GO-based).}
 
-\item{hgdisease_source}{Character. Disease database (default: "do").}
+\item{hgdisease_source}{Character. Disease ontology source (default: "do").
+Options: "do" (Disease Ontology), "nci" (NCI Thesaurus), "mesh" (MeSH). Only used when
+\code{enrich_database = "HgDisease"}. Links genes to disease associations.}
 
-\item{mesh_method}{Character. MeSH method (default: "gendoo").}
+\item{mesh_method}{Character. MeSH analysis method (default: "gendoo").
+Options: "gendoo", "gene2pubmed". Only used when \code{enrich_database = "Mesh"}.
+"gendoo" uses literature mining, "gene2pubmed" uses PubMed annotations.}
 
-\item{mesh_category}{Character. MeSH category (default: "A").}
+\item{mesh_category}{Character. MeSH category (default: "A").
+Options: "A" (anatomy), "B" (organisms), "C" (diseases), "D" (chemicals), etc.
+Only used when \code{enrich_database = "Mesh"}. Filters MeSH terms by category.}
 
-\item{enrichrdb_library}{Character. Enrichr library (default: "Cancer_Cell_Line_Encyclopedia").}
+\item{enrichrdb_library}{Character. Enrichr library (default: "Cancer_Cell_Line_Encyclopedia").
+Options: 100+ libraries (see Enrichr website). Popular: "KEGG_2021_Human", "GO_Biological_Process_2021",
+"WikiPathway_2021_Human", "Reactome_2022", "MSigDB_Hallmark_2020", "Cancer_Cell_Line_Encyclopedia".
+Only used when \code{enrich_database = "Enrichrdb"}. Diverse gene set collections.}
 
-\item{immune_algorithm}{Character. Immune deconvolution algorithm (default: NULL for all).
-Options: "cibersort", "epic", "mcpcounter", "quantiseq", "timer", "xcell"
-Only used when var1_modal = "ImmuneCell"}
+\item{immune_algorithm}{Character or NULL. Immune deconvolution algorithm filter (default: NULL).
+Options: "cibersort", "xcell", "quantiseq", "mcpcounter", "timer", "epic", "ips", "estimate", or NULL.
+Only used when \code{var1_modal = "ImmuneCell"}. NULL includes all algorithms.}
 }
 \value{
-List with three components:
-  \item{stats}{Enrichment results}
-  \item{plot}{Plot object}
-  \item{raw_data}{Complete genome-wide analysis results}
+**Unified Return Structure**: List with 3 components (consistent across scenarios)
+
+**Quick Access Guide** (common operations):
+\itemize{
+  \item Get enrichment results: \code{result$stats}
+  \item View plot: \code{print(result$plot)}
+  \item Save plot: Already auto-saved to \code{sltcga_output/*.png}
+  \item Filter significant: \code{result$stats[result$stats$p_adj < 0.05, ]}
+  \item Get top pathways: \code{head(result$stats[order(abs(result$stats$NES), decreasing=TRUE), ], 10)}
+  \item Extract leading edge: \code{result$stats$leading_edge[[1]]} (for GSEA)
+  \item Get upregulated: \code{result$stats[result$stats$NES > 0 & result$stats$p_adj < 0.05, ]}
+  \item Get downregulated: \code{result$stats[result$stats$NES < 0 & result$stats$p_adj < 0.05, ]}
+  \item Export data: \code{write.csv(result$stats, "enrichment_results.csv")}
+  \item Access full genome: \code{result$raw_data} (all ~20,000 genes)
+}
+
+  \describe{
+    \item{\strong{stats}}{Data frame with enrichment/association results (variable number of rows):
+      \itemize{
+        \item **Genome scan (analysis_type="genome")**: Genes correlated/associated with query
+          \itemize{
+            \item Continuous query: gene, r (correlation), p, p_adj, n
+            \item Categorical query: gene, logFC (fold change), p, p_adj, n
+          }
+        \item **GSEA (analysis_type="enrichment")**: Enriched pathways
+          \itemize{
+            \item Columns: pathway, NES (normalized enrichment score), p, p_adj, size (gene count),
+                  leading_edge (core enriched genes)
+            \item NES > 0: pathway upregulated/activated, NES < 0: downregulated/suppressed
+          }
+      }
+      Always includes adjusted p-values (FDR). Multiple variables -> multiple sections in results.
+      Use \code{result$stats} to access. Filter by p_adj < 0.05 for significant results.
+    }
+    \item{\strong{plot}}{Visualization object (type varies by scenario):
+      \itemize{
+        \item **Scenario 8/12**: Network plot (query variable at center, top genes as nodes)
+        \item **Scenario 9/13**: Paired plots (GSEA running enrichment + bar plot)
+        \item **Scenario 10/14**: Dot plot matrix (variables x genes or pathways)
+        \item **Scenario 11/15**: Heatmap matrix (variables x pathways with NES colors)
+      }
+      All ggplot2 objects. Access: \code{result$plot}. Dimensions: \code{attr(result$plot, "width/height")}.
+      Auto-saved to \code{sltcga_output/*.png} (300 DPI).
+    }
+    \item{\strong{raw_data}}{Complete genome-wide analysis results (full gene list):
+      \itemize{
+        \item Contains all ~20,000 genes with statistics (not just top N shown in plots)
+        \item Use for: Custom filtering, extracting specific genes, secondary analysis
+        \item For GSEA: raw_data contains gene-level statistics used as GSEA input
+      }
+      Access: \code{result$raw_data}. Can be list (multiple variables) or data frame (single variable).
+    }
+  }
 }
 \description{
-Perform enrichment analysis (Scenarios 8-15).
-TCGA uses RNAseq for enrichment (no Protein data available).
+**Discovers genes and pathways** affected by query variable through two complementary workflows:
+(1) **genome-wide scan** compares query against all ~20,000 genes to identify top correlated/
+differentially expressed individual genes (answers: "Which genes are affected?"), (2) **pathway
+enrichment (GSEA)** tests association with biological pathways from 8 databases (MsigDB, GO,
+KEGG, Reactome, WikiPathways, MeSH, Disease Ontology, Enrichr) to discover functional programs
+(answers: "Which pathways are activated/suppressed?"). Supports TCGA data modalities (RNAseq,
+Mutation, CNV, Methylation, miRNA, Clinical, Signature, ImmuneCell). Automatically detects 8
+scenarios (8-15) based on variable type (categorical: DEA-based, continuous: correlation-based)
+and count (single: network/paired plots, multiple: matrix/heatmap). TCGA enrichment uses RNAseq
+as genome-wide reference. Returns unified structure: \code{list(stats, plot, raw_data)}.
+}
+\details{
+**How to Interpret Results** (Step-by-Step Decision Tree):
+
+**For Genome-Wide Scan (analysis_type="genome")**:
+
+**Step 1: Check significance**
+\itemize{
+  \item p_adj < 0.05 -> Significant association -> Proceed to Step 2
+  \item p_adj >= 0.05 -> Not significant -> Gene not reliably associated
+  \item Note: With ~20,000 genes tested, always use p_adj (FDR-corrected), not raw p
+}
+
+**Step 2: Check effect size**
+\itemize{
+  \item Correlation: |r| > 0.5 = strong, 0.3-0.5 = moderate, < 0.3 = weak
+  \item Fold change: |logFC| > 2 = 4x change (strong), 1-2 = 2-4x (moderate), < 1 = weak
+}
+
+**Step 3: Check direction**
+\itemize{
+  \item r > 0 or logFC > 0: Gene upregulated/activated with query variable
+  \item r < 0 or logFC < 0: Gene downregulated/suppressed with query variable
+}
+
+**For Pathway Enrichment (analysis_type="enrichment", GSEA)**:
+
+**Step 1: Check significance**
+\itemize{
+  \item p_adj < 0.05 -> Significantly enriched pathway -> Proceed to Step 2
+  \item p_adj >= 0.05 -> Not enriched -> Pathway not associated with query
+}
+
+**Step 2: Check enrichment strength**
+\itemize{
+  \item |NES| > 2.0 -> Strong enrichment -> High confidence
+  \item |NES| 1.5-2.0 -> Moderate enrichment -> Good candidate
+  \item |NES| < 1.5 -> Weak enrichment -> Marginal association
+}
+
+**Step 3: Check direction and meaning**
+\itemize{
+  \item NES > 0: Pathway activated/upregulated in high/mutant group
+  \item NES < 0: Pathway suppressed/downregulated in high/mutant group
+}
+
+**Step 4: Examine leading edge genes**
+\itemize{
+  \item Core genes driving enrichment signal
+  \item Focus on these for mechanistic follow-up
+  \item Validate in independent datasets
+}
+
+**Interpretation Templates for LLM**:
+
+**Genome scan template** (gene discovery):
+"Genome-wide scan identified [N] genes significantly [correlated with/differentially expressed by]
+\code{[query_variable]} (FDR < 0.05) in [cancer]. Top genes include: [gene1] ([metric] = [value]),
+[gene2] ([metric] = [value]), [gene3] ([metric] = [value]). These genes are involved in
+[biological_processes] and may represent [downstream targets/regulatory network] of \code{[query_variable]}."
+
+Example: "Genome-wide scan identified 2,845 genes significantly differentially expressed by TP53
+mutation (FDR < 0.05) in BRCA. Top genes include: MDM2 (logFC = 1.84), CDKN1A (logFC = 1.52),
+BAX (logFC = 1.38). These genes are involved in p53-mediated tumor suppression and may represent
+transcriptional targets of TP53."
+
+**GSEA enrichment template** (pathway discovery):
+"\code{[query_variable]} is significantly associated with [N] biological pathways (FDR < 0.05)
+in [cancer]. Top enriched pathways include: [pathway1] (NES = [NES1], [direction1]), [pathway2]
+(NES = [NES2], [direction2]), [pathway3] (NES = [NES3], [direction3]). These results suggest
+\code{[query_variable]} affects [biological_theme] and [cellular_processes]."
+
+Example: "TP53 mutation is significantly associated with 12 biological pathways (FDR < 0.05)
+in BRCA. Top enriched pathways include: P53_PATHWAY (NES = 2.85, upregulated in mutants),
+APOPTOSIS (NES = 2.12, upregulated), DNA_REPAIR (NES = 1.95, upregulated). These results suggest
+TP53 mutation disrupts p53-mediated tumor suppression and DNA damage response."
+
+**No significant enrichment template**:
+"No pathways significantly enriched (FDR < 0.05) for \code{[query_variable]} in [cancer] using
+[database]. This may indicate: (1) \code{[query_variable]} has subtle/distributed effects not
+captured at pathway level, (2) try genome scan to find individual genes, or (3) try different
+pathway database for alternative gene set definitions."
+
+**8 Analysis Scenarios** (Auto-detected):
+
+Function detects scenario based on (1) variable type (categorical/continuous), (2) variable count
+(single/multiple), (3) analysis type (genome/enrichment):
+
+**Scenarios 8-11: Categorical Variables** (e.g., Mutation, some Clinical)
+
+Uses **Differential Expression Analysis (DEA)** with limma-voom:
+\itemize{
+  \item **Scenario 8**: 1 categorical vs genome-wide -> Network plot
+    \itemize{
+      \item Example: TP53 mutation status -> Top 100 differentially expressed genes
+      \item Method: DEA (limma) comparing mutant vs wildtype tumors
+      \item Output: Genes with logFC and adjusted p-values
+      \item Plot: Network with query gene at center, DE genes as nodes, colored by logFC
+      \item Use for: Discovering genes dysregulated by mutation/clinical factor
+    }
+  \item **Scenario 9**: 1 categorical vs enrichment -> GSEA paired plots
+    \itemize{
+      \item Example: TP53 mutation -> Enriched pathways (e.g., "p53 pathway", "Apoptosis")
+      \item Method: DEA generates ranked gene list (by logFC) -> GSEA tests pathway enrichment
+      \item Output: Pathways with NES, p-values, leading edge genes
+      \item Plot: Running enrichment plot (top) + bar plot of pathways (bottom)
+      \item Use for: Understanding biological consequences of mutation/clinical factor
+    }
+  \item **Scenario 10**: Multiple categorical vs genome-wide -> Dot plot matrix
+    \itemize{
+      \item Example: c("TP53", "PIK3CA", "KRAS") mutations -> DE genes for each
+      \item Method: Separate DEA for each mutation, combined visualization
+      \item Plot: Rows = mutations, Columns = top DE genes, Dots = logFC (size) + p-value (color)
+      \item Use for: Comparing transcriptional effects of multiple mutations
+    }
+  \item **Scenario 11**: Multiple categorical vs enrichment -> GSEA heatmap matrix
+    \itemize{
+      \item Example: c("TP53", "PIK3CA", "KRAS") mutations -> Pathway enrichment for each
+      \item Method: Separate GSEA for each mutation, matrix visualization
+      \item Plot: Rows = mutations, Columns = pathways, Cells = NES (colored by direction/magnitude)
+      \item Use for: Comparing pathway-level effects of multiple mutations, finding shared pathways
+    }
+}
+
+**Scenarios 12-15: Continuous Variables** (e.g., RNAseq, CNV, ImmuneCell, Signature)
+
+Uses **Correlation Analysis** (Pearson/Spearman):
+\itemize{
+  \item **Scenario 12**: 1 continuous vs genome-wide -> Network plot
+    \itemize{
+      \item Example: TP53 expression -> Top 100 correlated genes
+      \item Method: Pearson correlation between query gene and all genes
+      \item Output: Genes with correlation coefficient (r) and adjusted p-values
+      \item Plot: Network with query at center, correlated genes as nodes, colored by r
+      \item Use for: Finding co-expressed genes, regulatory networks, pathway members
+    }
+  \item **Scenario 13**: 1 continuous vs enrichment -> GSEA paired plots
+    \itemize{
+      \item Example: TP53 expression -> Enriched pathways
+      \item Method: Correlation generates ranked gene list (by r) -> GSEA tests pathway enrichment
+      \item Output: Pathways with NES (e.g., DNA repair pathways enriched with high TP53)
+      \item Plot: Running enrichment plot + bar plot
+      \item Use for: Understanding functional programs associated with gene expression
+    }
+  \item **Scenario 14**: Multiple continuous vs genome-wide -> Dot plot matrix
+    \itemize{
+      \item Example: c("TP53", "MDM2", "CDKN1A") expression -> Correlated genes for each
+      \item Method: Separate correlation for each gene, combined visualization
+      \item Plot: Rows = query genes, Columns = top correlated genes, Dots = r (size) + p (color)
+      \item Use for: Comparing co-expression patterns of multiple genes
+    }
+  \item **Scenario 15**: Multiple continuous vs enrichment -> GSEA heatmap matrix
+    \itemize{
+      \item Example: c("TP53", "MDM2", "CDKN1A") -> Pathway enrichment for each
+      \item Method: Separate GSEA for each gene, matrix visualization
+      \item Plot: Rows = query genes, Columns = pathways, Cells = NES
+      \item Use for: Comparing pathway associations of multiple genes, finding shared pathways
+    }
+}
+
+**8 Pathway Databases** (Choose Based on Research Question):
+
+\itemize{
+  \item **MsigDB (Molecular Signatures Database)**: Curated gene sets, gold standard
+    \itemize{
+      \item Collections: H (hallmark, 50), C2 (curated, 5,000+), C5 (GO), C6 (oncogenic), C7 (immune)
+      \item Pros: Well-curated, widely used, comprehensive
+      \item Use for: General pathway analysis, literature-supported pathways
+      \item Recommended subcollection: H (focused), C2 (comprehensive)
+    }
+  \item **GO (Gene Ontology)**: Standardized biological terms, hierarchical
+    \itemize{
+      \item Sub-ontologies: BP (biological process), CC (cellular component), MF (molecular function)
+      \item Pros: Standardized, hierarchical, covers all biology
+      \item Cons: Can be generic, overlapping terms
+      \item Use for: Standard functional annotation, cross-study comparison
+    }
+  \item **KEGG (Kyoto Encyclopedia)**: Metabolism and signaling pathways
+    \itemize{
+      \item Pros: Detailed pathway maps, metabolic focus
+      \item Use for: Metabolism, signaling cascades, disease pathways
+    }
+  \item **Reactome**: Detailed reaction networks, curated
+    \itemize{
+      \item Pros: Detailed biochemical reactions, well-annotated
+      \item Use for: Mechanistic insights, reaction-level detail
+    }
+  \item **WikiPathways**: Community-curated, human-readable
+    \itemize{
+      \item Pros: Visual pathway diagrams, actively updated
+      \item Use for: Exploring pathways, generating hypotheses
+    }
+  \item **MeSH (Medical Subject Headings)**: Literature-based associations
+    \itemize{
+      \item Pros: Links to biomedical literature
+      \item Use for: Literature mining, disease associations
+    }
+  \item **Disease Ontology**: Disease-gene associations
+    \itemize{
+      \item Pros: Direct disease links
+      \item Use for: Translational research, disease mechanisms
+    }
+  \item **Enrichr**: Diverse gene set library collection (100+ libraries)
+    \itemize{
+      \item Pros: Massive diversity (TFs, drugs, cell types, diseases)
+      \item Use for: Exploratory analysis, finding unexpected associations
+    }
+}
+
+**DEA (Categorical) vs Correlation (Continuous)**:
+\itemize{
+  \item **DEA (Differential Expression Analysis)**:
+    \itemize{
+      \item Used for: Categorical variables (Mutation, Clinical groups)
+      \item Method: limma-voom comparing groups (e.g., mutant vs wildtype)
+      \item Output: logFC (fold change), p-value, adjusted p-value
+      \item Interpretation: Genes up/down-regulated in group comparison
+    }
+  \item **Correlation Analysis**:
+    \itemize{
+      \item Used for: Continuous variables (RNAseq, CNV, ImmuneCell, Signature)
+      \item Method: Pearson/Spearman correlation between query and genome
+      \item Output: r (correlation coefficient), p-value, adjusted p-value
+      \item Interpretation: Genes positively/negatively correlated with query
+    }
+}
+
+**Genome Scan vs GSEA Enrichment**:
+\itemize{
+  \item **Genome scan (analysis_type="genome")**:
+    \itemize{
+      \item Discovers: Individual genes associated with query
+      \item Output: Gene list ranked by association strength
+      \item Use for: Finding candidate genes, validating known associations, gene-level hypotheses
+      \item Advantage: Direct gene targets, clear interpretation
+    }
+  \item **GSEA enrichment (analysis_type="enrichment")**:
+    \itemize{
+      \item Discovers: Biological pathways/processes associated with query
+      \item Output: Pathway list ranked by enrichment score (NES)
+      \item Use for: Understanding biological mechanisms, systems-level insights, generating hypotheses
+      \item Advantage: Reduces complexity (~20,000 genes -> ~500 pathways), biological interpretation
+    }
+  \item Recommendation: Run both. Genome scan for genes, GSEA for pathways.
+}
+
+**What You Can Do Next** (with executable code snippets):
+
+**1. Validate top genes in independent cancer**:
+\preformatted{
+# Get top correlated genes from genome scan
+top_genes <- head(result$stats[order(abs(result$stats$r), decreasing = TRUE), ], 10)
+gene_names <- gsub(" \\\\(.*", "", top_genes$gene)
+
+# Validate in lung cancer
+luad_result <- tcga_correlation(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "LUAD",
+  var2 = gene_names, var2_modal = "RNAseq", var2_cancers = "LUAD"
+)
+}
+
+**2. Test prognostic value of enriched pathway genes**:
+\preformatted{
+# Extract leading edge genes from top pathway
+top_pathway <- result$stats[1, ]
+leading_genes <- top_pathway$leading_edge[[1]]
+
+# Test if these genes predict survival
+surv_result <- tcga_survival(
+  var1 = leading_genes[1:5], var1_modal = "RNAseq", var1_cancers = "BRCA",
+  surv_type = "OS"
+)
+}
+
+**3. Multi-omics integration** (find multi-level regulation):
+\preformatted{
+# First: Find genes correlated with TP53 expression
+rna_result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  analysis_type = "genome"
+)
+
+# Then: Test if CNV drives these correlations
+top_genes <- head(rna_result$stats$gene, 10)
+cnv_result <- tcga_correlation(
+  var1 = top_genes, var1_modal = "CNV", var1_cancers = "BRCA",
+  var2 = top_genes, var2_modal = "RNAseq", var2_cancers = "BRCA"
+)
+}
+
+**4. Molecular subtype comparison**:
+\preformatted{
+# Compare TP53 mutation effects in subtypes
+luma_result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA-LumA",
+  analysis_type = "enrichment"
+)
+basal_result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA-Basal",
+  analysis_type = "enrichment"
+)
+
+# Find subtype-specific pathways
+luma_only <- setdiff(luma_result$stats$pathway, basal_result$stats$pathway)
+}
+
+**5. Custom filtering of raw_data**:
+\preformatted{
+# Access full genome-wide data (all ~20,000 genes)
+full_data <- result$raw_data
+
+# Filter for strong effects
+strong_genes <- full_data[abs(full_data$logFC) > 2 & full_data$p_adj < 0.001, ]
+
+# Extract specific genes
+my_genes <- c("MDM2", "CDKN1A", "BAX")
+my_genes_data <- full_data[full_data$gene %in% my_genes, ]
+}
+
+**6. Extract and analyze leading edge genes**:
+\preformatted{
+# Get leading edge genes from top enriched pathway
+top_pathway <- result$stats[result$stats$p_adj < 0.05, ][1, ]
+core_genes <- top_pathway$leading_edge[[1]]
+
+# Test these genes' correlation with each other
+cor_result <- tcga_correlation(
+  var1 = core_genes[1:5], var1_modal = "RNAseq", var1_cancers = "BRCA",
+  var2 = core_genes[1:5], var2_modal = "RNAseq", var2_cancers = "BRCA"
+)
+}
+}
+\section{Performance Test}{
+
+**Test Environment**: TCGA genomic data, genome-wide RNAseq (~20,000 genes)
+
+\strong{Scenario 8 - Categorical genome scan} (TP53 mutation -> DE genes, BRCA):
+\itemize{
+  \item Runtime: 8.5-12 sec (DEA on ~20,000 genes)
+  \item Sample size: 1,095 BRCA patients (WT: 719, Mutant: 376)
+  \item Result: 2,845 significantly DE genes (FDR < 0.05)
+  \item Top gene: MDM2 (logFC = 1.84, p_adj < 0.001) - known TP53 target
+  \item Interpretation: TP53 mutation profoundly alters transcriptional landscape
+  \item Plot: Network plot showing top 50 DE genes (6.0" x 6.0")
+}
+
+\strong{Scenario 9 - Categorical GSEA} (TP53 mutation -> Enriched pathways, BRCA):
+\itemize{
+  \item Runtime: 15-20 sec (DEA + GSEA with 50 Hallmark pathways, 6 workers)
+  \item Sample size: 1,095 BRCA patients
+  \item Result: 12 significantly enriched pathways (FDR < 0.05)
+  \item Top pathway: "HALLMARK_P53_PATHWAY" (NES = 2.85, p_adj < 0.001)
+  \item Other enriched: "APOPTOSIS" (NES = 2.12), "DNA_REPAIR" (NES = 1.95)
+  \item Interpretation: TP53 mutation disrupts p53-mediated tumor suppression
+  \item Plot: Running enrichment + bar plot (8.0" x 6.0")
+}
+
+\strong{Scenario 10 - Multiple categorical genome scan} (3 mutations -> DE genes):
+\itemize{
+  \item Runtime: 22-28 sec (3 separate DEA analyses)
+  \item Mutations: TP53, PIK3CA, GATA3 in BRCA
+  \item Result: ~2,000-3,000 DE genes per mutation
+  \item Overlap: 145 genes commonly dysregulated by all 3 mutations
+  \item Plot: Dot plot matrix (3 mutations x top 50 genes, 8.0" x 7.0")
+}
+
+\strong{Scenario 11 - Multiple categorical GSEA} (3 mutations -> Pathways):
+\itemize{
+  \item Runtime: 42-55 sec (3 DEA + 3 GSEA analyses)
+  \item Mutations: TP53, PIK3CA, GATA3 in BRCA
+  \item Result: Each mutation enriches distinct pathways
+    \itemize{
+      \item TP53: p53 pathway, apoptosis, DNA repair
+      \item PIK3CA: PI3K/AKT/mTOR signaling, metabolism
+      \item GATA3: Estrogen response, epithelial differentiation
+    }
+  \item Plot: Heatmap matrix (3 mutations x top 30 pathways, 9.0" x 8.0")
+}
+
+\strong{Scenario 12 - Continuous genome scan} (TP53 expression -> Correlated genes):
+\itemize{
+  \item Runtime: 5-8 sec (Pearson correlation with ~20,000 genes)
+  \item Sample size: 1,095 BRCA patients
+  \item Result: 3,456 significantly correlated genes (FDR < 0.05)
+  \item Top gene: MDM2 (r = 0.42, p_adj < 0.001) - TP53 transcriptional target
+  \item Other: CDKN1A (r = 0.38), BAX (r = 0.35) - p53 pathway members
+  \item Interpretation: TP53 expression correlates with its transcriptional program
+  \item Plot: Network plot (6.0" x 6.0")
+}
+
+\strong{Scenario 13 - Continuous GSEA} (TP53 expression -> Enriched pathways):
+\itemize{
+  \item Runtime: 12-16 sec (Correlation + GSEA)
+  \item Sample size: 1,095 BRCA patients
+  \item Result: 18 significantly enriched pathways (FDR < 0.05)
+  \item Top pathway: "HALLMARK_P53_PATHWAY" (NES = 2.45, p_adj < 0.001)
+  \item Other: "DNA_REPAIR" (NES = 2.02), "APOPTOSIS" (NES = 1.87)
+  \item Interpretation: High TP53 expression associated with active tumor suppression
+  \item Plot: Running enrichment + bar plot (8.0" x 6.0")
+}
+
+\strong{Scenario 14 - Multiple continuous genome scan} (3 genes -> Correlated genes):
+\itemize{
+  \item Runtime: 14-20 sec (3 separate correlation analyses)
+  \item Genes: TP53, MDM2, CDKN1A in BRCA
+  \item Result: Each gene correlates with ~2,000-3,500 genes
+  \item Common correlated: 289 genes correlated with all 3 (p53 pathway members)
+  \item Plot: Dot plot matrix (8.0" x 7.0")
+}
+
+\strong{Scenario 15 - Multiple continuous GSEA} (3 genes -> Pathways):
+\itemize{
+  \item Runtime: 35-48 sec (3 correlation + 3 GSEA analyses)
+  \item Genes: TP53, MDM2, CDKN1A in BRCA
+  \item Result: All 3 genes enrich similar pathways (p53 pathway, DNA repair, cell cycle)
+  \item Overlap: 8 pathways enriched by all 3 genes (core p53 program)
+  \item Plot: Heatmap matrix (3 genes x top 30 pathways, 9.0" x 8.0")
+}
+
+\strong{Special - Immune cell enrichment} (CD8 T cells -> Pathways):
+\itemize{
+  \item Runtime: 13-17 sec
+  \item Sample size: 1,095 BRCA patients
+  \item Result: Immune-related pathways enriched
+    \itemize{
+      \item "INTERFERON_GAMMA_RESPONSE" (NES = 2.67)
+      \item "INFLAMMATORY_RESPONSE" (NES = 2.34)
+      \item "ALLOGRAFT_REJECTION" (NES = 2.18)
+    }
+  \item Interpretation: CD8 T cells drive interferon signaling and inflammation
+}
+
+\strong{Special - TMB signature} (TMB -> Enriched pathways):
+\itemize{
+  \item Runtime: 14-18 sec
+  \item Sample size: 1,095 BRCA patients
+  \item Result: DNA damage and immune pathways enriched
+    \itemize{
+      \item "DNA_REPAIR" (NES = 1.95)
+      \item "MISMATCH_REPAIR" (NES = 1.82)
+      \item "INTERFERON_ALPHA_RESPONSE" (NES = 1.76)
+    }
+  \item Interpretation: High TMB tumors have active DNA damage response and immunity
+}
+
+\strong{Database comparison} (TP53 mutation, different databases):
+\itemize{
+  \item MsigDB Hallmark: 15-20 sec, 50 pathways tested, 12 significant
+  \item GO Biological Process: 45-60 sec, ~5,000 terms tested, ~200 significant
+  \item KEGG: 18-25 sec, ~300 pathways tested, 25 significant
+  \item Reactome: 22-30 sec, ~1,500 pathways tested, 45 significant
+  \item Recommendation: Start with MsigDB Hallmark (focused), expand to GO/KEGG if needed
+}
+
+**Recommended Use**:
+\itemize{
+  \item Single variable genome scan: 5-12 sec, quick gene discovery
+  \item Single variable GSEA: 12-20 sec, pathway-level insights
+  \item Multiple variables (3-5): 20-55 sec, comparative analysis feasible
+  \item Large analyses (10+ variables): 2-5 min, consider batch processing or focused approach
+  \item Database choice: Hallmark (fastest, focused) -> KEGG (moderate) -> GO (comprehensive, slowest)
+  \item Parallel workers: 6-8 optimal for GSEA, diminishing returns >8
+}
+}
+
+\section{User Queries}{
+
+**Mutation Effects**:
+\itemize{
+  \item Which genes are differentially expressed in TP53 mutant tumors?
+  \item What pathways are disrupted by PIK3CA mutation?
+  \item How does KRAS mutation affect transcriptional programs?
+  \item Which genes are commonly dysregulated across multiple mutations?
+  \item What are the downstream effects of BRCA1 mutation?
+  \item Does EGFR mutation activate specific pathways?
+}
+
+**Gene Expression Programs**:
+\itemize{
+  \item Which genes are co-expressed with TP53?
+  \item What pathways are associated with high TP53 expression?
+  \item Which genes correlate with immune checkpoint expression?
+  \item What are the transcriptional targets of MYC?
+  \item Which pathways are enriched in high vs low TP53 expressors?
+}
+
+**Immune Microenvironment**:
+\itemize{
+  \item What pathways are associated with CD8+ T cell infiltration?
+  \item Which genes correlate with immune cell abundance?
+  \item What pathways are activated in immune-inflamed tumors?
+  \item How does macrophage infiltration affect transcriptional programs?
+  \item Are interferon pathways enriched with high immune infiltration?
+}
+
+**Clinical Associations**:
+\itemize{
+  \item What pathways differ between early and advanced stage tumors?
+  \item Which genes are associated with tumor grade?
+  \item What pathways are enriched in specific histological subtypes?
+  \item How does patient age affect gene expression programs?
+}
+
+**Molecular Signatures**:
+\itemize{
+  \item What pathways are associated with high TMB?
+  \item Which genes correlate with hypoxia score?
+  \item What pathways are enriched in EMT-high tumors?
+  \item Are DNA repair pathways enriched with high genomic instability?
+  \item Which genes are associated with stemness signatures?
+}
+
+**Genome-Wide Discovery**:
+\itemize{
+  \item How do I find genes associated with my query variable?
+  \item What is genome-wide scan vs pathway enrichment?
+  \item Which approach finds individual genes (genome scan)?
+  \item How do I discover novel gene associations?
+  \item Can I find transcriptional targets of my gene of interest?
+}
+
+**Pathway Analysis**:
+\itemize{
+  \item What pathways are enriched in my dataset?
+  \item How do I perform GSEA analysis?
+  \item Which database should I use (MsigDB, GO, KEGG)?
+  \item What is NES (normalized enrichment score)?
+  \item How do I interpret GSEA results?
+  \item What are leading edge genes?
+}
+
+**Database Selection**:
+\itemize{
+  \item Which pathway database is most comprehensive?
+  \item What is the difference between MsigDB collections (H, C2, C5)?
+  \item Should I use GO, KEGG, or Reactome?
+  \item What is MsigDB Hallmark collection?
+  \item How do I choose between GO BP, CC, and MF?
+  \item What is Enrichr and when should I use it?
+}
+
+**Comparative Analysis**:
+\itemize{
+  \item How do I compare pathway enrichments across multiple mutations?
+  \item Which mutations have similar transcriptional effects?
+  \item Can I compare gene expression programs of related genes?
+  \item How do I find pathways shared by multiple genes?
+  \item What genes are commonly dysregulated by different mutations?
+}
+
+**Multi-Omics Integration**:
+\itemize{
+  \item Can I analyze CNV effects on pathways?
+  \item How does methylation affect pathway activity?
+  \item Can I use miRNA to find pathway associations?
+  \item How do I integrate different omics layers for pathway analysis?
+}
+
+**Pan-Cancer Analysis**:
+\itemize{
+  \item Are TP53 mutation effects consistent across cancers?
+  \item Which pathways are universally affected by specific mutations?
+  \item How do I compare enrichment results across cancer types?
+  \item Are pathway associations cancer-type specific?
+}
+
+**Workflow Questions**:
+\itemize{
+  \item Should I run genome scan or pathway enrichment first?
+  \item How do I validate enrichment findings?
+  \item Can I use enrichment results to design experiments?
+  \item How do I extract genes from enriched pathways?
+  \item What do I do with raw_data output?
+}
+
+**Technical Questions**:
+\itemize{
+  \item What is the difference between DEA and correlation?
+  \item When are categorical vs continuous methods used?
+  \item How does GSEA work?
+  \item What is FDR correction and why is it important?
+  \item How many pathways should I test?
+  \item How do I speed up GSEA computation?
+}
+
+**Colloquial and Alternative Phrasings**:
+\itemize{
+  \item Which genes does TP53 mutation affect?
+  \item What pathways does this mutation mess with?
+  \item Mutation affected genes
+  \item Find genes related to my mutation
+  \item What biological processes are involved?
+  \item Pathway discovery mutation
+  \item Gene set enrichment my data
+  \item What's happening downstream of this gene?
+  \item Which pathways are turned on or off?
+  \item Functional analysis mutation
+}
+
+**Abbreviations and Full Forms**:
+\itemize{
+  \item GSEA (Gene Set Enrichment Analysis / pathway enrichment / gene set analysis)
+  \item DEA (Differential Expression Analysis / differential gene expression / DE analysis)
+  \item GO (Gene Ontology / GO terms / GO biological process)
+  \item KEGG (Kyoto Encyclopedia of Genes and Genomes / KEGG pathways)
+  \item MSigDB (Molecular Signatures Database / molecular signature database)
+  \item NES (Normalized Enrichment Score / enrichment score / ES)
+  \item FDR (False Discovery Rate / adjusted p-value / q-value / corrected p-value)
+  \item logFC (log Fold Change / fold change / FC / expression change)
+}
+
+**Function Selection Questions**:
+\itemize{
+  \item Should I use tcga_enrichment or tcga_correlation for pathway analysis?
+  \item Which function finds affected pathways? (Answer: tcga_enrichment)
+  \item Which function for GSEA? (Answer: tcga_enrichment)
+  \item How to find genes affected by mutation? (Answer: tcga_enrichment genome scan)
+  \item Which function discovers biological processes? (Answer: tcga_enrichment)
+  \item Correlation vs enrichment - which for pathway discovery? (Answer: tcga_enrichment)
+}
+}
+
+\examples{
+\donttest{
+# ===========================================================================
+# Example 1: Mutation genome scan (Scenario 8) - TESTED 10.2 sec
+# ===========================================================================
+# Research Question: Which genes are differentially expressed in TP53 mutant tumors?
+# Expected: p53 pathway genes (MDM2, CDKN1A, BAX) upregulated
+
+result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "genome", top_n = 50
+)
+
+# Return structure
+result$stats # DE genes: gene, logFC, p, p_adj
+result$plot # Network plot (TP53 at center, DE genes as nodes)
+result$raw_data # Full 20,000 genes with statistics
+
+# Interpret
+top_genes <- head(result$stats[order(result$stats$p_adj), ], 10)
+cat("Top 10 DE genes:\n")
+print(top_genes[, c("gene", "logFC", "p_adj")])
+
+# Find TP53 targets
+tp53_targets <- result$stats[result$stats$gene \%in\% c("MDM2", "CDKN1A", "BAX"), ]
+
+# ===========================================================================
+# Example 2: Mutation pathway enrichment (Scenario 9) - TESTED 18.5 sec
+# ===========================================================================
+# Research Question: What pathways are disrupted by TP53 mutation?
+# Expected: p53 pathway, apoptosis, DNA repair
+
+result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "MsigDB",
+  msigdb_category = "H", top_n = 20
+)
+
+result$stats # Pathways: pathway, NES, p, p_adj, leading_edge
+result$plot # GSEA running enrichment + bar plot
+
+# Find significant pathways
+sig_pathways <- result$stats[result$stats$p_adj < 0.05, ]
+cat("Significant pathways:", nrow(sig_pathways), "\n")
+
+# Interpretation
+# NES > 0: pathway enriched in mutant tumors
+# NES < 0: pathway enriched in wildtype tumors
+
+# ===========================================================================
+# Example 3: Gene expression genome scan (Scenario 12) - TESTED 6.8 sec
+# ===========================================================================
+# Research Question: Which genes are co-expressed with TP53?
+# Expected: p53 pathway members (MDM2, CDKN1A, BAX)
+
+result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  analysis_type = "genome", method = "pearson", top_n = 50
+)
+
+result$stats # Correlated genes: gene, r, p, p_adj
+result$plot # Network plot
+
+# Find positively correlated genes
+pos_cor <- result$stats[result$stats$r > 0.3 & result$stats$p_adj < 0.05, ]
+cat("Positively correlated genes:", nrow(pos_cor), "\n")
+
+# ===========================================================================
+# Example 4: Gene expression pathway enrichment (Scenario 13) - TESTED 14.2 sec
+# ===========================================================================
+# Research Question: What pathways are associated with TP53 expression?
+
+result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "RNAseq", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "MsigDB",
+  msigdb_category = "H"
+)
+
+result$stats # Enriched pathways with NES
+# High TP53 expression enriches: p53 pathway, DNA repair, apoptosis
+
+# ===========================================================================
+# Example 5: Multiple mutations genome scan (Scenario 10) - TESTED 25.3 sec
+# ===========================================================================
+# Research Question: Compare transcriptional effects of multiple mutations
+
+result <- tcga_enrichment(
+  var1 = c("TP53", "PIK3CA", "GATA3"), var1_modal = "Mutation",
+  var1_cancers = "BRCA", analysis_type = "genome", top_n = 50
+)
+
+result$stats # DE genes for each mutation
+result$plot # Dot plot matrix (mutations x genes)
+result$raw_data # List of 3 data frames (one per mutation)
+
+# Find genes dysregulated by multiple mutations
+# (requires custom analysis of raw_data)
+
+# ===========================================================================
+# Example 6: Multiple mutations pathway enrichment (Scenario 11) - TESTED 48.7 sec
+# ===========================================================================
+# Research Question: Compare pathway disruptions by different mutations
+
+result <- tcga_enrichment(
+  var1 = c("TP53", "PIK3CA", "GATA3"), var1_modal = "Mutation",
+  var1_cancers = "BRCA", analysis_type = "enrichment",
+  enrich_database = "MsigDB", msigdb_category = "H", top_n = 30
+)
+
+result$stats # Pathways for each mutation
+result$plot # Heatmap matrix (mutations x pathways, colored by NES)
+
+# Interpretation:
+# - TP53: p53 pathway, apoptosis, DNA repair
+# - PIK3CA: PI3K/AKT/mTOR, metabolism
+# - GATA3: Estrogen response, epithelial differentiation
+
+# ===========================================================================
+# Example 7: Multiple genes pathway enrichment (Scenario 15) - TESTED 42.1 sec
+# ===========================================================================
+# Research Question: Do p53 pathway members enrich similar pathways?
+
+result <- tcga_enrichment(
+  var1 = c("TP53", "MDM2", "CDKN1A"), var1_modal = "RNAseq",
+  var1_cancers = "BRCA", analysis_type = "enrichment",
+  enrich_database = "MsigDB", msigdb_category = "H"
+)
+
+result$stats # Pathways for each gene
+result$plot # Heatmap matrix showing shared enrichments
+
+# Expected: All 3 genes enrich p53 pathway, DNA repair, cell cycle
+
+# ===========================================================================
+# Example 8: GO Biological Process enrichment - TESTED 52.3 sec
+# ===========================================================================
+# Research Question: Detailed GO terms for TP53 mutation
+
+result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "GO",
+  enrich_ont = "BP", top_n = 30
+)
+
+result$stats # GO:BP terms with NES
+# More detailed than Hallmark, but more generic terms
+
+# ===========================================================================
+# Example 9: KEGG pathway enrichment - TESTED 21.5 sec
+# ===========================================================================
+# Research Question: KEGG pathways affected by PIK3CA mutation
+
+result <- tcga_enrichment(
+  var1 = "PIK3CA", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "KEGG",
+  kegg_category = "pathway"
+)
+
+result$stats # KEGG pathways
+# Expected: PI3K-Akt signaling pathway, mTOR signaling
+
+# ===========================================================================
+# Example 10: Immune cell enrichment - TESTED 15.8 sec
+# ===========================================================================
+# Research Question: What pathways are associated with CD8+ T cell infiltration?
+
+result <- tcga_enrichment(
+  var1 = "CD8_T_cells_cibersort", var1_modal = "ImmuneCell",
+  var1_cancers = "BRCA", analysis_type = "enrichment",
+  enrich_database = "MsigDB", msigdb_category = "H"
+)
+
+result$stats # Immune-related pathways
+# Expected: Interferon response, inflammatory response, allograft rejection
+
+# ===========================================================================
+# Example 11: TMB signature enrichment - TESTED 16.3 sec
+# ===========================================================================
+# Research Question: What pathways are associated with high TMB?
+
+result <- tcga_enrichment(
+  var1 = "TMB", var1_modal = "Signature", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "MsigDB",
+  msigdb_category = "H"
+)
+
+result$stats # DNA repair and immune pathways
+# High TMB tumors: DNA repair deficiency + immune activation
+
+# ===========================================================================
+# Example 12: Clinical variable enrichment - TESTED 11.7 sec
+# ===========================================================================
+# Research Question: What pathways differ by tumor stage?
+# Note: Cannot use genome scan with Clinical (use enrichment only)
+
+result <- tcga_enrichment(
+  var1 = "Stage", var1_modal = "Clinical", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "MsigDB",
+  msigdb_category = "H"
+)
+
+result$stats # Pathways associated with advanced stage
+# Expected: EMT, angiogenesis, metastasis-related pathways
+
+# ===========================================================================
+# Example 13: Custom analysis with raw_data
+# ===========================================================================
+# Use raw_data for custom filtering or secondary analysis
+
+result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "genome"
+)
+
+# Access full genome-wide data
+full_data <- result$raw_data
+head(full_data) # All ~20,000 genes
+
+# Custom filtering
+strong_de <- full_data[abs(full_data$logFC) > 2 & full_data$p_adj < 0.001, ]
+
+# Extract specific genes
+my_genes <- c("MDM2", "CDKN1A", "BAX", "BCL2", "MYC")
+my_genes_data <- full_data[full_data$gene \%in\% my_genes, ]
+
+# Use for downstream analysis
+# - Survival analysis of top DE genes
+# - Validate in independent cancer types
+# - Build gene signatures from DE genes
+
+# ===========================================================================
+# Example 14: Pan-cancer comparison
+# ===========================================================================
+# Compare TP53 mutation effects across cancers
+
+# BRCA
+brca_result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "MsigDB"
+)
+
+# LUAD
+luad_result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "LUAD",
+  analysis_type = "enrichment", enrich_database = "MsigDB"
+)
+
+# Compare enriched pathways
+brca_paths <- brca_result$stats$pathway[brca_result$stats$p_adj < 0.05]
+luad_paths <- luad_result$stats$pathway[luad_result$stats$p_adj < 0.05]
+
+# Shared pathways
+shared <- intersect(brca_paths, luad_paths)
+cat("Shared pathways:", length(shared), "\n")
+
+# ===========================================================================
+# Example 15: Common Mistakes and How to Fix Them
+# ===========================================================================
+
+# MISTAKE 1: Using Clinical variables with genome scan
+# ❌ WRONG: Clinical variables cannot be used for genome-wide scan
+# result_wrong <- tcga_enrichment(
+#   var1 = "Stage", var1_modal = "Clinical", var1_cancers = "BRCA",
+#   analysis_type = "genome"  # Error! Clinical vars don't have genome-wide data
+# )
+# Error: Clinical variables cannot be used for genome-wide scans
+
+# ✅ CORRECT: Use enrichment for Clinical, or use tcga_correlation instead
+result_correct <- tcga_enrichment(
+  var1 = "Stage", var1_modal = "Clinical", var1_cancers = "BRCA",
+  analysis_type = "enrichment" # Enrichment works with Clinical
+)
+
+# Or use tcga_correlation for Clinical vs genes
+# result_alt <- tcga_correlation(
+#   var1 = "Stage", var1_modal = "Clinical", var1_cancers = "BRCA",
+#   var2 = c("TP53", "MYC", "KRAS"), var2_modal = "RNAseq", var2_cancers = "BRCA"
+# )
+
+# MISTAKE 2: Wrong database parameter for chosen database
+# ❌ WRONG: Specifying GO parameters when using MsigDB
+# result_wrong <- tcga_enrichment(
+#   var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+#   enrich_database = "MsigDB",
+#   enrich_ont = "BP"  # This is for GO, not MsigDB!
+# )
+# Won't cause error but parameter is ignored
+
+# ✅ CORRECT: Use database-specific parameters
+# For MsigDB: use msigdb_category
+result_msigdb <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  enrich_database = "MsigDB",
+  msigdb_category = "H" # Correct parameter for MsigDB
+)
+
+# For GO: use enrich_ont
+result_go <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  enrich_database = "GO",
+  enrich_ont = "BP" # Correct parameter for GO
+)
+
+# MISTAKE 3: Misinterpreting NES sign
+result <- tcga_enrichment(
+  var1 = "TP53", var1_modal = "Mutation", var1_cancers = "BRCA",
+  analysis_type = "enrichment", enrich_database = "MsigDB"
+)
+
+# ❌ WRONG: "NES = 2.5 means pathway is downregulated"
+# ✅ CORRECT: NES > 0 means pathway UPREGULATED/ACTIVATED in mutant group
+#            NES < 0 means pathway DOWNREGULATED/SUPPRESSED in mutant group
+
+sig_pathways <- result$stats[result$stats$p_adj < 0.05, ]
+upregulated <- sig_pathways[sig_pathways$NES > 0, ] # Activated in mutants
+downregulated <- sig_pathways[sig_pathways$NES < 0, ] # Suppressed in mutants
+
+# MISTAKE 4: Expecting too many significant pathways
+# Not finding significant pathways (p_adj > 0.05 for all) doesn't mean:
+# - Analysis failed
+# - Something is wrong
+# It may mean: The query variable doesn't have strong pathway-level effects
+# Try: genome scan to find individual genes, or different database
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After enrichment analysis:
+# 1. Validate top genes with tcga_correlation() in independent cancers
+# 2. Test prognostic value with tcga_survival()
+# 3. Explore leading edge genes from enriched pathways
+# 4. Compare across molecular subtypes
+# 5. Design targeted experiments based on pathway insights
+}
+
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+
+**GSEA Method**:
+
+Subramanian A, et al. (2005). Gene set enrichment analysis: a knowledge-based
+approach for interpreting genome-wide expression profiles. PNAS, 102(43):15545-15550.
+\doi{10.1073/pnas.0506580102}
+
+**MsigDB Database**:
+
+Liberzon A, et al. (2015). The Molecular Signatures Database (MSigDB) hallmark
+gene set collection. Cell Systems, 1(6):417-425. \doi{10.1016/j.cels.2015.12.004}
+
+**Gene Ontology**:
+
+The Gene Ontology Consortium (2021). The Gene Ontology resource: enriching a
+GOld mine. Nucleic Acids Research, 49(D1):D325-D334. \doi{10.1093/nar/gkaa1113}
+}
+\seealso{
+\itemize{
+  \item \code{\link{tcga_correlation}} - Validate top genes from enrichment analysis
+  \item \code{\link{tcga_survival}} - Test prognostic value of enriched pathways
+  \item \code{\link{list_modalities}} - View all data modalities
+  \item \code{\link{list_variables}} - Explore Clinical/Signature/ImmuneCell variables
+  \item \code{\link{list_cancer_types}} - View all cancer types and subtypes
+}
 }

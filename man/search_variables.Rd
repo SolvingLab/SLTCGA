@@ -2,25 +2,211 @@
 % Please edit documentation in R/helpers.R
 \name{search_variables}
 \alias{search_variables}
-\title{Search Variables Across Modalities}
+\title{Search Variables Across Clinical, Signature, and ImmuneCell Modalities}
 \usage{
 search_variables(keyword, modal = NULL)
 }
 \arguments{
-\item{keyword}{Character. Keyword to search}
+\item{keyword}{Character. Search keyword or pattern (required).
+Case-insensitive regex matching on variable names and aliases.
+Examples: "TMB", "T_cells", "Stage", "immune", "stemness".}
 
-\item{modal}{Character or NULL. Optional modal to restrict search}
+\item{modal}{Character or NULL. Optional modality restriction (default: NULL).
+Options: "Clinical", "Signature", "ImmuneCell", or NULL for all.
+NULL searches across all three modalities.}
 }
 \value{
-List of matched variables (invisible)
+Named list of matched variables (invisible):
+  \describe{
+    \item{Clinical}{Named vector of Clinical matches (if any)}
+    \item{Signature}{Named vector of Signature matches (if any)}
+    \item{ImmuneCell}{Named vector of ImmuneCell matches (if any)}
+  }
+  Returns NULL if no matches found.
 }
 \description{
-Search for variables matching a keyword across Clinical, Signature, and ImmuneCell.
+Performs case-insensitive keyword search across Clinical (66 variables),
+Signature (58 variables), and ImmuneCell (99 cell types) modalities, with
+optional restriction to specific modality. Searches both variable names and
+aliases. Returns grouped results showing matches per modality. Essential for
+discovering relevant variables when variable name is uncertain.
 }
-\examples{
-\dontrun{
-search_variables("TMB")
-search_variables("T_cells", modal = "ImmuneCell")
+\details{
+**Search Scope**:
+\itemize{
+  \item **Clinical** (66 variables): Age, Gender, Stage, Grade, MSI_status, etc.
+  \item **Signature** (58 variables): TMB, EMT, Hypoxia, CYT, Stemness, etc.
+  \item **ImmuneCell** (99 cell types): CD8_T_cells, Macrophages, B_cells, etc.
+  \item **Not searched**: RNAseq, Mutation, CNV, Methylation, miRNA (use gene symbols directly)
 }
 
+**Search Behavior**:
+\itemize{
+  \item Case-insensitive: "tmb", "TMB", "Tmb" all match
+  \item Partial matching: "T_cells" matches "CD8_T_cells", "CD4_T_cells", etc.
+  \item Regex support: "Stage|Grade" matches both Stage and Grade variables
+  \item Alias matching: Searches both user-friendly names and full variable names
+}
+
+**Common Search Terms**:
+\itemize{
+  \item Immune: "T_cells", "Macrophage", "B_cells", "NK", "Treg", "CD8"
+  \item Clinical: "Age", "Gender", "Stage", "Grade", "MSI", "Race"
+  \item Signatures: "TMB", "EMT", "Hypoxia", "Angiogenesis", "Stemness", "CYT"
+  \item Metabolic: "Glycolysis", "OXPHOS", "Fatty_acid"
+}
+}
+\section{User Queries}{
+
+**General Search**:
+\itemize{
+  \item How do I find variables related to tumor mutation burden?
+  \item Can I search for immune-related variables?
+  \item What variables contain "Stage" in their name?
+  \item How do I find all T cell types?
+  \item Can I search for EMT-related signatures?
+  \item Is there a variable for hypoxia?
+}
+
+**Immune Cell Search**:
+\itemize{
+  \item How do I find CD8+ T cells?
+  \item What macrophage variables are available?
+  \item Can I search for B cell infiltration data?
+  \item How do I find regulatory T cells (Tregs)?
+  \item What NK cell types exist?
+}
+
+**Clinical Search**:
+\itemize{
+  \item How do I find patient age variable?
+  \item What is the variable name for tumor stage?
+  \item Can I search for MSI status?
+  \item How do I find treatment-related variables?
+  \item What survival endpoints are available?
+}
+
+**Signature Search**:
+\itemize{
+  \item How do I find immune signature scores?
+  \item What stemness signatures exist?
+  \item Can I search for metabolic pathway scores?
+  \item Is there a DNA repair signature?
+  \item How do I find angiogenesis scores?
+}
+
+**Workflow Questions**:
+\itemize{
+  \item I want to analyze immune infiltration but don't know exact variable names
+  \item How do I discover what variables are available for my research topic?
+  \item Can I search across multiple modalities at once?
+  \item How do I find alternative names for the same variable?
+}
+}
+
+\examples{
+\donttest{
+# ===========================================================================
+# Example 1: Search for tumor mutation burden (TMB)
+# ===========================================================================
+# Research Question: What TMB-related variables exist?
+
+search_variables("TMB")
+
+# Returns matches in Signature:
+# - TMB
+# - TMB_NonSynonymous
+# - TMB_Nonsilent
+
+# ===========================================================================
+# Example 2: Search for T cell types across modalities
+# ===========================================================================
+# Research Question: What T cell infiltration data is available?
+
+search_variables("T_cells")
+
+# Returns matches in ImmuneCell:
+# - CD8_T_cells_cibersort
+# - CD4_T_cells_cibersort
+# - Tregs_cibersort
+# - T_cells_CD8_xcell
+# ... (shows first 5 per modality)
+
+# ===========================================================================
+# Example 3: Search immune cells only
+# ===========================================================================
+
+search_variables("Macrophage", modal = "ImmuneCell")
+
+# Returns only ImmuneCell matches:
+# - Macrophages_M0_cibersort
+# - Macrophages_M1_cibersort
+# - Macrophages_M2_cibersort
+# - Macrophages_xcell
+
+# ===========================================================================
+# Example 4: Search for stage-related clinical variables
+# ===========================================================================
+
+search_variables("Stage", modal = "Clinical")
+
+# Returns Clinical matches:
+# - Stage
+# - Stage_T
+# - Stage_N
+# - Stage_M
+# - Pathologic_stage
+
+# ===========================================================================
+# Example 5: Search immune signatures
+# ===========================================================================
+
+search_variables("immune|CYT|IFNG", modal = "Signature")
+
+# Returns Signature matches:
+# - CYT (Cytolytic activity)
+# - IFNG (Interferon gamma)
+# - TIS (T cell inflamed signature)
+
+# ===========================================================================
+# Example 6: Programmatic use
+# ===========================================================================
+
+# Get search results
+results <- search_variables("EMT")
+
+# Extract Signature matches
+emt_vars <- results$Signature
+
+# Use in analysis
+# tcga_correlation(
+#   var1 = names(emt_vars)[1], var1_modal = "Signature", ...
+# )
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After finding variable names:
+# 1. Use list_variables() to see full variable lists
+# 2. Use found variables in tcga_correlation(), tcga_enrichment(), tcga_survival()
+# 3. For genes, use gene symbols directly with RNAseq/Mutation/CNV modality
+}
+
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+}
+\seealso{
+\itemize{
+  \item \code{\link{list_variables}} - List all variables for a modality
+  \item \code{\link{list_modalities}} - View all omics modalities
+  \item \code{\link{list_immune_cells}} - Detailed immune cell search
+  \item \code{\link{tcga_correlation}} - Use found variables in analysis
+}
 }

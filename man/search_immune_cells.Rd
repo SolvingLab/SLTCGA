@@ -2,23 +2,142 @@
 % Please edit documentation in R/helpers.R
 \name{search_immune_cells}
 \alias{search_immune_cells}
-\title{Search Immune Cell Types}
+\title{Search Immune Cell Types by Keyword}
 \usage{
 search_immune_cells(keyword)
 }
 \arguments{
-\item{keyword}{Character. Keyword to search}
+\item{keyword}{Character. Search keyword or pattern (required).
+Case-insensitive partial matching on cell names.
+Examples: "CD8", "Macrophage", "B_cells", "Treg", "NK".}
 }
 \value{
-Data frame with matching cells (invisible)
+Data frame with 3 columns (invisible):
+  \describe{
+    \item{Cell_Name}{Full cell type name}
+    \item{Algorithm}{Deconvolution algorithm}
+    \item{Category}{Functional category}
+  }
+  Returns NULL if no matches found.
 }
 \description{
-Search for immune cell types matching a keyword.
+Performs case-insensitive keyword search across all 99 immune cell types from
+8 deconvolution algorithms. Searches cell names with partial matching support.
+Returns matched cells with algorithm and category information. Convenient wrapper
+around \code{list_immune_cells()} for quick cell type discovery.
 }
-\examples{
-\dontrun{
-search_immune_cells("B_cells")
-search_immune_cells("macrophage")
+\details{
+**Common Search Terms**:
+\itemize{
+  \item **T cells**: "CD8", "CD4", "T_cells", "Treg", "Cytotoxic"
+  \item **B cells**: "B_cells", "Plasma", "Naive_B", "Memory_B"
+  \item **Myeloid**: "Macrophage", "Monocyte", "Dendritic", "Neutrophil", "M1", "M2"
+  \item **NK cells**: "NK", "Natural_Killer"
+  \item **Stromal**: "Fibroblast", "Endothelial", "MSC", "Adipocyte"
+  \item **Scores**: "Immune", "Stromal", "Purity"
 }
 
+**Search Tips**:
+\itemize{
+  \item Partial matching: "Macro" matches "Macrophages_M0", "Macrophages_M1", etc.
+  \item Case-insensitive: "cd8", "CD8", "Cd8" all work
+  \item Use specific terms for fewer results: "CD8" better than "T"
+  \item Use algorithm suffix to filter: "_cibersort", "_xcell"
+}
+}
+\section{User Queries}{
+
+**Quick Search**:
+\itemize{
+  \item How do I quickly find CD8+ T cells?
+  \item What macrophage types match "M1"?
+  \item Can I search for B cells?
+  \item How do I find regulatory T cells?
+  \item What cells match "NK"?
+}
+
+**Use Cases**:
+\itemize{
+  \item I know the cell type but not the exact variable name
+  \item I want to see all variants of a cell type across algorithms
+  \item I need to quickly check if a cell type exists
+  \item I want to compare similar cells from different algorithms
+}
+}
+
+\examples{
+\donttest{
+# ===========================================================================
+# Example 1: Search for CD8+ T cells
+# ===========================================================================
+
+search_immune_cells("CD8")
+
+# Returns CD8 variants:
+# - CD8_T_cells_cibersort
+# - T_cells_CD8_xcell
+# - T_cells_CD8_quantiseq
+# - CD8_T_cells_mcpcounter
+
+# ===========================================================================
+# Example 2: Search for macrophages
+# ===========================================================================
+
+search_immune_cells("Macrophage")
+
+# Returns all macrophage types:
+# - Macrophages_M0_cibersort
+# - Macrophages_M1_cibersort
+# - Macrophages_M2_cibersort
+# - Macrophages_xcell
+# - Macrophages_M1_quantiseq
+# - Macrophages_M2_quantiseq
+
+# ===========================================================================
+# Example 3: Search for B cells
+# ===========================================================================
+
+search_immune_cells("B_cells")
+
+# Returns B cell variants:
+# - B_cells_naive_cibersort
+# - B_cells_memory_cibersort
+# - Plasma_cells_cibersort
+# - B_cells_xcell
+
+# ===========================================================================
+# Example 4: Quick check if cell type exists
+# ===========================================================================
+
+# Check for regulatory T cells
+treg_results <- search_immune_cells("Treg")
+
+if (!is.null(treg_results)) {
+  cat("Found", nrow(treg_results), "Treg variants\n")
+}
+
+# ===========================================================================
+# Next Steps
+# ===========================================================================
+# After finding cell names:
+# 1. Use in tcga_correlation(var2 = "CD8_T_cells_cibersort", var2_modal = "ImmuneCell")
+# 2. Use in tcga_survival(var1 = "Macrophages_M1_cibersort", var1_modal = "ImmuneCell")
+}
+
+}
+\references{
+**TCGA Database**:
+
+The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas
+Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+\doi{10.1038/ng.2764}
+
+Database portal: \url{https://www.cancer.gov/tcga}
+}
+\seealso{
+\itemize{
+  \item \code{\link{list_immune_cells}} - List all immune cells with filtering
+  \item \code{\link{search_variables}} - Search across Clinical/Signature/ImmuneCell
+  \item \code{\link{tcga_correlation}} - Use found cells in analysis
+}
 }

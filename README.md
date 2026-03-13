@@ -44,7 +44,7 @@ devtools::install_github("SolvingLab/SLTCGA")
 
 # Install dependencies from SolvingLab
 devtools::install_github("Zaoqu-Liu/ggforge")
-devtools::install_github("SolvingLab/BioEnricher")
+devtools::install_github("GangLiLab/geneset")
 devtools::install_github("Zaoqu-Liu/genekitr2")
 devtools::install_github("SolvingLab/astat")
 ```

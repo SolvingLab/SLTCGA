@@ -1,0 +1,1055 @@
+# SLTCGA Documentation Rules for LLM RAG System
+
+**Package Type**: Genomic Statistical Analysis Toolkit (17 Pre-defined Scenarios)  
+**Target Users**: Cancer Researchers + LLM Systems + Cursor AI Agent  
+**Core Purpose**: Enable LLM to SELECT the right analysis scenario and GENERATE correct TCGA analysis calls
+
+**CRITICAL DISTINCTION**: SLTCGA = TCGA Genomics (33 cancers) | SLCPTAC = CPTAC Proteomics (10 cancers)
+
+---
+
+## 🎯 CORE UNDERSTANDING: Statistical Scenario Package
+
+**SLTCGA = 17 Statistical Scenarios on TCGA Data**
+
+```
+User Query: "TP53和MDM2表达之间有什么关系?"
+    ↓
+LLM RAG Retrieval → Finds tcga_correlation()
+    ↓
+LLM Reads: @description + @param + @examples
+    ↓
+LLM Generates: result <- tcga_correlation(
+                  var1 = "TP53",
+                  var1_modal = "RNAseq",
+                  var1_cancers = "BRCA",
+                  var2 = "MDM2",
+                  var2_modal = "RNAseq",
+                  var2_cancers = "BRCA"
+                )
+    ↓
+Execute → Returns: list(stats, plot, raw_data)
+    ↓
+LLM Answers: "TP53与MDM2呈正相关 (r=0.42, p<0.001)"
+```
+
+**Unique Features**:
+- ✅ 33 TCGA cancer types + 32 molecular subtypes
+- ✅ 8 omics layers: RNAseq, Mutation, CNV, Methylation, miRNA, Clinical, ImmuneCell, Signature
+- ✅ **Intra-omics**: Gene A vs Gene B within same layer (e.g., TP53-MDM2 mRNA correlation)
+- ✅ **Cross-omics**: Layer A vs Layer B (e.g., Methylation-RNAseq, CNV-RNAseq)
+- ✅ Immune cell deconvolution (22 cell types)
+- ✅ Molecular signatures (Hypoxia, EMT, Stemness, etc.)
+
+**Critical Difference from Data Analysis Packages**:
+- ❌ NOT: Raw data processing (like CellScope, Seurat)
+- ✅ YES: Pre-defined statistical scenarios on curated datasets
+- Users ask **research questions**, not **how to process data**
+
+---
+
+## 🚨 SIX CORE PRINCIPLES (NON-NEGOTIABLE)
+
+### Principle #0: CODE-LOGIC-FIRST (理解代码再写文档)
+
+**NEVER write documentation without understanding the code!**
+
+Before documenting ANY function:
+1. **Read function body**: What does it ACTUALLY do?
+2. **Trace data flow**: Input → Processing → Output
+3. **Identify scenarios**: Which of 17 scenarios are covered?
+4. **Check return structure**: Use `str(result)` from test
+5. **Find statistical tests**: What tests are applied?
+
+**Example Analysis**:
+```r
+# Function: tcga_correlation()
+# Lines 150-280 show:
+# - Loads var1 and var2 data (data-load.R)
+# - Detects scenario (data-scenario.R)
+# - Runs statistics (stats.R): Pearson/Spearman/Wilcoxon/Fisher
+# - Creates plot (plots.R): Scatter/Box/Heatmap
+# - Returns: list(stats, plot, raw_data)  ← KEY: Unified structure!
+```
+
+Only AFTER understanding code logic → Proceed to testing and documentation.
+
+---
+
+### Principle #1: TEST-FIRST (测试成功是基石)
+
+**Testing = Scenario execution + Result verification + Performance measurement**
+
+```r
+# Test template (comprehensive)
+Rscript -e "
+library(SLTCGA)
+start <- Sys.time()
+
+# Test with real research question
+result <- tcga_correlation(
+  var1 = 'TP53', var1_modal = 'RNAseq', var1_cancers = 'BRCA',
+  var2 = 'MDM2', var2_modal = 'RNAseq', var2_cancers = 'BRCA',
+  method = 'pearson'
+)
+
+runtime <- as.numeric(difftime(Sys.time(), start, units = 'secs'))
+cat('✓ Test passed\n')
+cat('Runtime:', runtime, 'sec\n')
+cat('Correlation:', result\$stats\$r[1], '\n')
+cat('P-value:', result\$stats\$p[1], '\n')
+cat('Sample size:', nrow(result\$raw_data), '\n')
+
+# Verify unified return structure
+str(result, max.level = 1)
+# List of 3: stats, plot, raw_data
+"
+```
+
+**What to Document from Test**:
+- ✅ Runtime (actual measurement, not estimate)
+- ✅ Sample size (actual patient count)
+- ✅ Statistical values (r, p, HR, etc.)
+- ✅ Return structure (verify unified: stats, plot, raw_data)
+- ✅ Plot dimensions (from attributes)
+
+**If test fails** → STOP and report to user (do not fabricate results)
+
+---
+
+### Principle #2: ENGLISH ONLY
+
+- ✅ ALL roxygen documentation in English
+- ✅ ALL section headers in English  
+- ❌ NO Chinese: 相关分析, 富集分析, 生存分析, etc.
+
+---
+
+### Principle #3: DELETE ALL NOISE
+
+**Category 1: Data Setup (MINIMIZE to 1 sentence)**
+
+❌ DELETE:
+```r
+#' **Data Setup**:
+#' \itemize{
+#'   \item Step 1: Download TCGA data...
+#'   \item Step 2: Set environment variable...
+#' }
+```
+
+✅ KEEP (if needed):
+```r
+#' **Data**: Requires \code{Sys.setenv(SL_BULK_DATA = "/path/to/data")}.
+```
+
+**Category 2: Filler Words (DELETE)**
+
+❌ DELETE: "Powerful", "Comprehensive", "Advanced", "Robust" (as generic adjective)
+✅ KEEP: "Robust statistics" (when referring to statistical properties)
+
+---
+
+### Principle #4: UNIFIED RETURN STRUCTURE (CRITICAL for SLTCGA/SLCPTAC)
+
+**ALL three main functions return the SAME structure**:
+
+```r
+list(
+  stats = data.frame(...),  # Statistical results
+  plot = ggplot/patchwork,  # Visualization
+  raw_data = data.frame(...)  # Merged input data
+)
+```
+
+**Document this EXPLICITLY in**:
+- @description: "Returns unified structure: \code{list(stats, plot, raw_data)}"
+- @return: Start with "**Unified Return Structure**: List with 3 components..."
+- @examples: Show all three components access
+
+**Why This Matters**:
+- LLM learns the pattern once, applies to all three functions
+- Users expect consistent interface
+- Easier to chain analyses (output of one → input of another)
+
+---
+
+### Principle #5: REFERENCE-BACKED (Simplified for Statistical Packages)
+
+**For SLTCGA/SLCPTAC**: Use database citation ONLY (not individual statistical tests)
+
+```r
+#' @references
+#' **TCGA Database**:
+#'
+#' The Cancer Genome Atlas Research Network (2013). The Cancer Genome Atlas 
+#' Pan-Cancer analysis project. Nature Genetics, 45(10):1113-1120.
+#' \doi{10.1038/ng.2764}
+#'
+#' Database portal: \url{https://www.cancer.gov/tcga}
+```
+
+**Rationale**: 
+- Statistical tests (Pearson, Wilcoxon, Cox) are standard → No need to cite original papers
+- Database source is more important for reproducibility
+- Simplifies documentation, focuses on data provenance
+
+---
+
+### Principle #6: EXECUTABLE EXAMPLES
+
+- ✅ ALL @examples use \donttest{} (not \dontrun{})
+- ✅ Examples use real cancer types and genes
+- ✅ Show expected output structure: `result$stats`, `result$plot`, `result$raw_data`
+- ✅ Include interpretation guidance
+- ✅ Include "Next Steps" pointers
+
+---
+
+## 📋 DOCUMENTATION STRUCTURE (Based on CellScope Standard)
+
+### @title (Clear + Specific)
+
+**Format**: `[Analysis Type] Across [Data Types]`
+
+✅ Good:
+```r
+#' Genomic Correlation and Association Analysis Across Multi-Omics Layers
+#' Genome-Wide Scan and Pathway Enrichment Analysis
+#' Prognostic Survival Analysis with Kaplan-Meier and Cox Regression
+```
+
+❌ Bad:
+```r
+#' TCGA Correlation  ← Too vague
+#' Correlation Analysis  ← Not data-specific
+```
+
+---
+
+### @description (2-3 sentences, ~80 words - KEY for LLM Selection)
+
+**Template** (Based on CellScope + SLCPTAC success):
+```r
+#' @description
+#' Performs [analysis type] across [N omics layers] supporting both **intra-omics** 
+#' (e.g., Gene A vs Gene B within RNAseq) and **cross-omics** (e.g., CNV vs mRNA) 
+#' analyses, covering [X combinations]. Automatically [key automation features], 
+#' selects appropriate statistical tests ([list tests]), and generates publication-ready 
+#' visualizations. Suitable for single/multiple genes in single/multiple cancers 
+#' ([N cancer types]). Returns unified structure: \code{list(stats, plot, raw_data)}.
+```
+
+**Real Example** (SLCPTAC-proven):
+```r
+#' @description
+#' Performs correlation and association analysis across 8 TCGA omics layers (RNAseq, 
+#' Mutation, CNV, Methylation, miRNA, Clinical, ImmuneCell, Signature) supporting 
+#' both **intra-omics** (e.g., Gene A vs Gene B within RNAseq) and **cross-omics** 
+#' (e.g., CNV vs mRNA) analyses, covering 64 combinations (8×8 matrix). Automatically 
+#' detects scenarios, selects appropriate statistical tests (Pearson/Spearman/Wilcoxon/
+#' Kruskal-Wallis/Fisher/Chi-square), and generates publication-ready visualizations.
+#' Suitable for single/multiple genes in single/multiple cancers (33 TCGA types + 32 subtypes).
+#' Returns unified structure: \code{list(stats, plot, raw_data)}.
+```
+
+**Key Elements** (based on successful tests):
+- ✅ Mention "intra-omics" and "cross-omics" capabilities
+- ✅ State number of combinations (8×8 = 64 for TCGA)
+- ✅ List statistical tests used
+- ✅ Specify unified return structure
+- ✅ Keep to ~80 words
+
+---
+
+### @param (Clear & Concise - 2-3 lines each)
+
+**Format**:
+```r
+#' @param param_name [Type]. [One-line purpose].
+#'   Options/Examples: [valid values].
+#'   [One-line impact on analysis].
+```
+
+**Good Example**:
+```r
+#' @param var1 Character vector. Gene names or clinical variables to analyze.
+#'   Examples: "TP53", c("TP53", "EGFR"), c("KRAS", "EGFR", "ALK").
+#'   Number of variables affects scenario selection (single → Scenario 1, multiple → Scenario 2/3).
+```
+
+**Bad Example** (too verbose):
+```r
+#' @param var1 Character vector. This parameter specifies the gene names or 
+#'   clinical variable names that you want to analyze in your study. You can
+#'   provide a single gene name as a character string, or multiple gene names
+#'   as a character vector. The number of genes you provide will affect which
+#'   scenario is selected by the function...
+```
+
+---
+
+### @return (Unified Structure + Next Steps)
+
+**Template** (Based on SLCPTAC success):
+```r
+#' @return **Unified Return Structure**: List with 3 components (consistent across scenarios)
+#'   \describe{
+#'     \item{\strong{stats}}{Data frame with [analysis-specific] results:
+#'       \itemize{
+#'         \item [Scenario-specific columns with biological meaning]
+#'       }
+#'       Always a data frame with 1+ rows (one per comparison).
+#'     }
+#'     \item{\strong{plot}}{Plot object (ggplot2, patchwork, or ComplexHeatmap):
+#'       \itemize{
+#'         \item Access: \code{result$plot}
+#'         \item Size: \code{attr(result$plot, "width")}, \code{attr(result$plot, "height")}
+#'         \item Types: [list plot types]
+#'         \item Auto-saved: sltcga_output/*.png (300 DPI)
+#'       }
+#'     }
+#'     \item{\strong{raw_data}}{Data frame with merged input data:
+#'       \itemize{
+#'         \item Rows = samples, Columns = analyzed features + cancer_type
+#'         \item Use for: Custom analysis, filtering, quality checks
+#'       }
+#'     }
+#'   }
+#'
+#' **How to Interpret**:
+#' \enumerate{
+#'   \item [How to read stats - e.g., Check result$stats$r for effect size]
+#'   \item [Significance - e.g., p<0.05 threshold]
+#'   \item [Visualization - e.g., print(result$plot)]
+#'   \item [Custom analysis - e.g., filter result$raw_data]
+#' }
+#'
+#' **What You Can Do Next**:
+#' \enumerate{
+#'   \item [Next analysis option 1 with function link]
+#'   \item [Next analysis option 2 with function link]
+#'   \item [Alternative analysis with use case]
+#' }
+```
+
+**Key Points**:
+- ✅ Start with "**Unified Return Structure**"
+- ✅ Use REAL test results for column names
+- ✅ Include "How to Interpret" section
+- ✅ Include "What You Can Do Next" for workflow continuity
+- ✅ Show programmatic access: `result$stats`, `result$plot`, `result$raw_data`
+
+---
+
+### @section Performance Test (MANDATORY - Real Test Results)
+
+**Format**:
+```r
+#' @section Performance Test:
+#' **Test Environment**: TCGA genomic database, [N] samples, [omics layers]
+#'
+#' \strong{Scenario X} - [Brief description] ([Specific test case]):
+#' \itemize{
+#'   \item Runtime: X.XX sec
+#'   \item Sample size: XXX [cancer] patients
+#'   \item Result: [key statistics with actual values]
+#'   \item Interpretation: [biological meaning]
+#'   \item Plot: [plot type and size]
+#' }
+#'
+#' \strong{Scenario Y} - [Another test case]:
+#' \itemize{
+#'   \item Runtime: X.XX sec
+#'   \item [Test-specific metrics]
+#' }
+#'
+#' **Recommended Use**:
+#' \itemize{
+#'   \item [Performance guidance based on real tests]
+#' }
+```
+
+**Based on SLCPTAC Success** (copy this pattern):
+```r
+#' @section Performance Test:
+#' **Test Environment**: TCGA genomic database, real patient samples
+#'
+#' \strong{Scenario 1} - Gene-gene correlation (TP53-MDM2 in BRCA):
+#' \itemize{
+#'   \item Runtime: 1.94 sec
+#'   \item Sample size: 1,095 BRCA patients
+#'   \item Result: r = 0.42, p < 0.001
+#'   \item Interpretation: Moderate positive correlation (MDM2 is TP53 target)
+#'   \item Plot: Scatter plot with regression line (4.5" × 4.0")
+#' }
+#'
+#' \strong{Multi-cancer test} (TP53-MDM2 in 3 cancers):
+#' \itemize{
+#'   \item Runtime: 0.35 sec (data pre-loaded, fast merging)
+#'   \item Sample size: 3,200+ patients (BRCA=1095, LUAD=515, COAD=286)
+#'   \item Plot: Lollipop plot for pan-cancer comparison
+#' }
+```
+
+---
+
+### @details (Statistical Interpretation + Scenario Logic)
+
+**Two Sections** (both important):
+
+**Section 1: Interpreting Results**
+```r
+#' @details
+#' **Interpreting Results**:
+#' \itemize{
+#'   \item **Pearson correlation**: r = 1 (perfect positive), r = 0 (no correlation),
+#'         r = -1 (perfect negative). |r| > 0.3 = moderate, |r| > 0.5 = strong.
+#'   \item **p-value**: p < 0.05 = significant, p < 0.01 = highly significant.
+#'   \item **Sample size**: Larger samples (>100) provide reliable estimates.
+#' }
+```
+
+**Section 2: Scenario Selection** (how function decides)
+```r
+#' **Scenario Selection**:
+#' \itemize{
+#'   \item Function automatically detects variable types and counts
+#'   \item Continuous variables: RNAseq, CNV, Methylation, miRNA, ImmuneCell, Signature
+#'   \item Categorical variables: Mutation, Clinical (most cases)
+#'   \item Scenario 1: 1 gene × 1 gene → Scatter plot
+#'   \item Scenario 2: 1 gene × multiple genes → Lollipop plot
+#'   \item Scenario 3: Multiple genes × multiple genes → Dot plot matrix
+#' }
+```
+
+---
+
+### @examples (Research Question-Driven + Real Test Data)
+
+**Format** (proven successful in SLCPTAC):
+```r
+#' @examples
+#' \donttest{
+#' # ===========================================================================
+#' # Example 1: [Analysis Type] (TESTED - X.XX sec, key result)
+#' # ===========================================================================
+#' # Research Question: [Biological question user wants to answer]
+#' # Expected: [Biological expectation]
+#'
+#' result <- function_name(
+#'   [parameters from successful test]
+#' )
+#'
+#' # Return structure (unified)
+#' result$stats      # [What it contains]
+#' result$plot       # [What visualization]
+#' result$raw_data   # [What data, N samples]
+#'
+#' # Interpret
+#' cat("[Biological interpretation of results]\n")
+#'
+#' # ===========================================================================
+#' # Example 2: [Different scenario]
+#' # ===========================================================================
+#' [Similar structure]
+#'
+#' # ===========================================================================
+#' # Next Steps
+#' # ===========================================================================
+#' # [Brief pointers to related functions]
+#' }
+```
+
+**Key Improvements from SLCPTAC**:
+- ✅ Every example starts with research question
+- ✅ Shows all three return components: `stats`, `plot`, `raw_data`
+- ✅ Includes biological interpretation
+- ✅ Uses TESTED marker with real runtime
+- ✅ Ends with Next Steps (workflow continuity)
+
+---
+
+### @section User Queries (Research Questions - 25-40 queries)
+
+**Categories to Cover** (based on SLCPTAC success):
+
+**For tcga_correlation**:
+1. **Intra-Omics Analysis** (Gene A vs Gene B in same layer) - 5-7 queries
+2. **Cross-Omics Analysis** (Layer A vs Layer B) - 5-7 queries
+3. **Mutation Analysis** - 5 queries
+4. **Clinical Associations** - 5 queries
+5. **Multi-Cancer Comparison** - 5 queries
+6. **Immune & Microenvironment** - 5 queries
+
+**Query Pattern**:
+```
+✅ GOOD: "Are TP53 and MDM2 mRNA levels correlated?"  
+✅ GOOD: "Does TP53 methylation silence its expression?"
+✅ GOOD: "Are KRAS and EGFR mutations mutually exclusive?"
+✅ GOOD: "Does tumor stage correlate with TP53 expression?"
+
+❌ BAD: "How to use tcga_correlation?"
+❌ BAD: "Which function for correlation analysis?"
+❌ BAD: "tcga_correlation parameter options"
+```
+
+**Example Block** (30+ queries):
+```r
+#' @section User Queries:
+#' **Intra-Omics Analysis** (same omics layer, different genes):
+#' \itemize{
+#'   \item Are TP53 and MDM2 mRNA levels correlated in breast cancer?
+#'   \item Do PIK3CA, AKT1, and MTOR show coordinated expression?
+#'   \item Which genes in the cell cycle pathway are co-expressed?
+#'   \item Are apoptosis genes (BCL2, BAX, BAK1) coordinately regulated?
+#' }
+#'
+#' **Cross-Omics Analysis** (different omics layers):
+#' \itemize{
+#'   \item Does TP53 CNV correlate with its mRNA expression?
+#'   \item Does BRCA1 methylation silence its mRNA?
+#'   \item Is EGFR mutation associated with protein expression? (use CPTAC for protein)
+#'   \item Do copy number changes drive expression alterations?
+#' }
+#'
+#' [Continue for all categories...]
+#' }
+```
+
+---
+
+## 🤖 AI AGENT EXECUTION WORKFLOW (Step-by-Step)
+
+### Phase 0: Code Understanding (CRITICAL - Do This First!)
+
+```
+□ Read function source code (entire body)
+□ Identify: Input type → Processing steps → Output type
+□ Map scenarios: Which of 17 scenarios does this function cover?
+□ Check return structure: Run test and use str(result)
+□ List parameters: Which ones affect scenario selection?
+□ Find dependencies: Other SLTCGA functions called?
+```
+
+### Phase 1: Testing (MANDATORY - Must Pass Before Writing Docs)
+
+**Create comprehensive test script**:
+
+```r
+# test_function_name.R
+library(SLTCGA)
+
+all_results <- list()
+
+# Test multiple scenarios (at least 3-5)
+# Test 1: Basic case
+# Test 2: Parameter variation
+# Test 3: Multi-cancer
+# Test 4: Cross-modality
+# etc.
+
+# For each test:
+# - Measure runtime
+# - Verify return structure
+# - Document statistical results
+# - Check plot generation
+```
+
+**Run test**:
+```bash
+Rscript tests/test_function_name.R
+```
+
+**If test fails** → STOP, fix issues, do not proceed to documentation
+
+**If test passes** → Save results for documentation:
+- Runtime (exact seconds)
+- Sample sizes (actual counts)
+- Statistical values (r, p, HR, etc.)
+- Return structure verification
+
+### Phase 2: Documentation Writing (Use Real Test Data)
+
+```
+□ @title: [Analysis Type] Across [Data Types]
+□ @description: 2-3 sentences (~80 words), mention unified return structure
+□ @param: All parameters (2-3 lines each, clear options)
+□ @return: Unified structure (stats, plot, raw_data) + Interpret + Next Steps
+□ @section Performance Test: Multiple scenarios with REAL test results
+□ @details: Interpreting Results + Scenario Selection logic
+□ @examples: Research questions + Real test data + Interpretation + Next Steps
+□ @section User Queries: 25-40 research questions (categorized)
+□ @references: Database citation (TCGA/CPTAC)
+□ @seealso: Related functions with use cases
+```
+
+### Phase 3: Validation (Run Direct Checks)
+
+```bash
+FILE="R/main.R"  # or appropriate file
+
+# Check 1: No Chinese characters in documentation
+grep -n "[\u4e00-\u9fff]" "$FILE" | grep -E "(#'|^#)" | wc -l
+# Should be 0
+
+# Check 2: Has @references
+grep -q "@references" "$FILE" && echo "✓ @references" || echo "✗ Missing"
+
+# Check 3: Has @section Performance Test
+grep -q "@section Performance Test" "$FILE" && echo "✓ Performance Test" || echo "✗ Missing"
+
+# Check 4: Has @section User Queries
+grep -q "@section User Queries" "$FILE" && echo "✓ User Queries" || echo "✗ Missing"
+
+# Check 5: Examples use \donttest
+grep -A 2 "@examples" "$FILE" | grep -q "\\\\donttest" && echo "✓ donttest" || echo "✗ Missing"
+
+# Check 6: Mentions unified return structure
+grep -q "list(stats, plot, raw_data)" "$FILE" && echo "✓ Unified structure" || echo "✗ Not mentioned"
+
+# Check 7: Compile documentation
+Rscript -e "library(roxygen2); roxygenize('.', roclets='rd')"
+```
+
+### Phase 4: Oral Report (简短口头汇报)
+
+**Format**:
+```
+✅ [Function Name] 优化完成
+
+测试验证:
+- [N] 个场景测试
+- [X/N] 通过
+- 性能: [fastest]-[slowest] 秒
+- 样本量: [typical sample size]
+
+文档更新:
+- @description: [word count] 词，含unified structure声明
+- @section Performance Test: [N] 个场景真实数据
+- @section User Queries: [N] 个研究问题
+- @examples: [N] 个示例，全部基于真实测试
+- @references: TCGA/CPTAC 核心文献
+
+质量检查:
+✓ 英文文档
+✓ 统一返回结构
+✓ 真实测试数据
+✓ 可执行示例
+```
+
+---
+
+## 📊 KEY DIFFERENCES: SLTCGA vs SLCPTAC
+
+| Feature | SLTCGA (Genomics) | SLCPTAC (Proteomics) |
+|---------|-------------------|----------------------|
+| **Database** | TCGA | CPTAC |
+| **Focus** | Genomics-centric | Proteomics-centric |
+| **Cancer types** | 33 types + 32 subtypes | 10 types |
+| **Omics layers** | 8 (no Phospho, no logCNA) | 7 (with Phospho, logCNA) |
+| **Special feature** | Immune deconvolution | Phospho site auto-detection |
+| **Sample size** | Larger (100-1,000+) | Smaller (100-500) |
+| **Return structure** | **list(stats, plot, raw_data)** | **list(stats, plot, raw_data)** |
+
+**Shared Capabilities**:
+- ✅ Intra-omics analysis (Gene A vs Gene B within same layer)
+- ✅ Cross-omics analysis (Layer A vs Layer B)
+- ✅ Single/multiple genes
+- ✅ Single/multiple cancers
+- ✅ Automatic scenario detection
+- ✅ Statistical test selection
+- ✅ Publication-ready visualizations
+- ✅ **Unified return structure**
+
+---
+
+## 🎯 SPECIFIC CAPABILITIES TO HIGHLIGHT
+
+### SLTCGA-Specific (Not in SLCPTAC):
+
+**1. Molecular Subtypes** (32 subtypes across 14 cancer types)
+```r
+# Example: BRCA subtypes
+tcga_correlation(
+  var1 = "ESR1", var1_modal = "RNAseq", 
+  var1_cancers = "BRCA-Basal",  # ← Subtype-specific
+  var2 = "GATA3", var2_modal = "RNAseq"
+)
+```
+
+**2. Immune Cell Deconvolution** (22 cell types)
+```r
+# Immune infiltration correlation
+tcga_correlation(
+  var1 = "PDL1", var1_modal = "RNAseq",
+  var2 = "CD8_T_cells", var2_modal = "ImmuneCell"  # ← 22 cell types
+)
+```
+
+**3. Molecular Signatures** (Hypoxia, EMT, Stemness, etc.)
+```r
+# Signature-expression correlation
+tcga_correlation(
+  var1 = "VHL", var1_modal = "RNAseq",
+  var2 = "Hypoxia_Score", var2_modal = "Signature"  # ← Pre-calculated signatures
+)
+```
+
+**4. miRNA Analysis**
+```r
+# miRNA-mRNA correlation
+tcga_correlation(
+  var1 = "hsa-mir-21", var1_modal = "miRNA",
+  var2 = "PDCD4", var2_modal = "RNAseq"  # ← Known target
+)
+```
+
+**Document These in @description**:
+- Mention molecular subtype support (32 subtypes)
+- Mention immune deconvolution (22 cell types)
+- Mention signature analysis (Hypoxia, EMT, etc.)
+- Emphasize larger sample sizes vs SLCPTAC
+
+---
+
+## 📝 DOCUMENTATION CHECKLIST (Before Finalizing)
+
+### Testing (CRITICAL)
+- [ ] Function tested successfully (at least 3-5 scenarios)
+- [ ] Runtime measured (exact seconds)
+- [ ] Sample sizes documented (actual counts)
+- [ ] Statistical results captured (r, p, HR, etc.)
+- [ ] Return structure verified: `list(stats, plot, raw_data)`
+
+### Content Quality (REQUIRED)
+- [ ] No Chinese characters in documentation sections
+- [ ] No data setup noise (≤1 sentence if absolutely needed)
+- [ ] @references has TCGA database citation (with DOI)
+- [ ] @description ~80 words, mentions unified return structure
+- [ ] @description mentions "intra-omics" and "cross-omics" capabilities
+
+### Structure (REQUIRED)
+- [ ] @title: [Analysis Type] Across [Data Types]
+- [ ] @description: Includes analysis + data scope + unified structure
+- [ ] @param: All parameters (2-3 lines each, clear options)
+- [ ] @return: Starts with "**Unified Return Structure**"
+- [ ] @return: Has "How to Interpret" and "What You Can Do Next"
+- [ ] @section Performance Test: Has REAL test results (2+ scenarios)
+- [ ] @section User Queries: 25-40 research questions
+- [ ] @examples: Wrapped in \donttest{}
+- [ ] @examples: Shows research questions + interpretation + next steps
+- [ ] @details: Has "Interpreting Results" + "Scenario Selection"
+
+### LLM RAG Readiness (CRITICAL)
+- [ ] @description clearly distinguishable from other functions
+- [ ] @section User Queries covers diverse research scenarios
+- [ ] @examples show biological context and interpretation
+- [ ] @return enables LLM to extract answers from results
+- [ ] "What You Can Do Next" enables workflow chaining
+
+---
+
+## 🚀 PROVEN OPTIMIZATION PATTERNS (From SLCPTAC Success)
+
+### Pattern 1: Intra-Omics Emphasis
+
+**Before**:
+```r
+#' Correlation analysis across multiple omics layers...
+```
+
+**After** (emphasize same-layer capability):
+```r
+#' Performs correlation analysis across 8 TCGA omics layers supporting both 
+#' **intra-omics** (e.g., Gene A vs Gene B within RNAseq) and **cross-omics**...
+```
+
+**Why**: Many users don't realize they can analyze Gene A vs Gene B in same layer!
+
+### Pattern 2: Unified Return Structure Declaration
+
+**Declare in THREE places**:
+1. @description last sentence: "Returns unified structure: \code{list(stats, plot, raw_data)}."
+2. @return first line: "**Unified Return Structure**: List with 3 components..."
+3. @examples: Always show all three: `result$stats`, `result$plot`, `result$raw_data`
+
+### Pattern 3: Capability Matrix
+
+**For correlation functions**:
+```r
+#' [N] omics × [N] omics = [N²] combinations
+#' Examples: RNAseq-RNAseq, RNAseq-Protein, CNV-mRNA, Methylation-mRNA, etc.
+```
+
+**For SLTCGA**: 8 omics × 8 omics = 64 combinations
+**For SLCPTAC**: 7 omics × 7 omics = 49 combinations
+
+### Pattern 4: Performance Test with Multiple Scenarios
+
+**Show diversity**:
+- Basic case (single gene, single cancer)
+- Complex case (multiple genes or cancers)
+- Special case (phospho sites, subtypes, etc.)
+
+### Pattern 5: User Queries Categorization
+
+**Organize by research theme**:
+- Intra-Omics (same layer analysis)
+- Cross-Omics (multi-layer integration)
+- Clinical translation
+- Multi-cancer validation
+- Pathway analysis
+- etc.
+
+---
+
+## 🎯 REMEMBER: THE COMPLETE RAG-LLM WORKFLOW
+
+```
+User Query ("TP53和MDM2表达相关吗?")
+    ↓
+┌─────────────────────────────────────────┐
+│ RAG Retrieval (Two-Embedding System)   │
+├─────────────────────────────────────────┤
+│ Embedding1: @title + @description       │
+│ Embedding2: @section User Queries       │
+│ → Union → Return: tcga_correlation()    │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│ LLM Function Selection                  │
+├─────────────────────────────────────────┤
+│ Reads: @description                     │
+│ Decides: tcga_correlation() matches     │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│ LLM Code Generation                     │
+├─────────────────────────────────────────┤
+│ Reads: @param + @examples               │
+│ Generates: result <- tcga_correlation(  │
+│   var1="TP53", var1_modal="RNAseq"...   │
+│ )                                       │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│ Execution + Result Extraction           │
+├─────────────────────────────────────────┤
+│ Reads: @return structure                │
+│ Extracts: result$stats$r, result$stats$p│
+│ Reads: @details interpretation          │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│ Answer Generation                       │
+├─────────────────────────────────────────┤
+│ LLM: "TP53与MDM2呈正相关 (r=0.42,      │
+│       p<0.001)。这符合MDM2是TP53       │
+│       调控靶基因的已知生物学。"         │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│ Workflow Continuation                   │
+├─────────────────────────────────────────┤
+│ Reads: "What You Can Do Next"          │
+│ LLM suggests: tcga_survival() or        │
+│              tcga_enrichment()          │
+└─────────────────────────────────────────┘
+```
+
+**Critical Elements**:
+- @description: Function selection (must be specific)
+- @param + @examples: Code generation (must be accurate)
+- @return + @details: Result interpretation (must be clear)
+- "What You Can Do Next": Workflow chaining (must have function links)
+
+---
+
+## 💡 LESSONS FROM SLCPTAC OPTIMIZATION
+
+### Success Factor 1: Extensive Testing
+
+**What worked**:
+- Tested 22 scenarios total (13 for correlation, 4 for enrichment, 5 for survival)
+- Every test measured runtime precisely
+- Captured actual statistical results
+- Verified return structure consistency
+
+**Apply to SLTCGA**:
+- Test tcga_correlation with 10+ scenarios
+- Test tcga_enrichment with 4+ scenarios  
+- Test tcga_survival with 5+ scenarios
+- Document EVERY test result
+
+### Success Factor 2: Unified Structure Emphasis
+
+**Impact**:
+- Users learn pattern once, apply everywhere
+- LLM understands consistent interface
+- Easier to chain analyses
+
+**SLTCGA Implementation**:
+```r
+# All three functions:
+tcga_correlation() → list(stats, plot, raw_data)
+tcga_enrichment() → list(stats, plot, raw_data)
+tcga_survival()    → list(stats, plot, raw_data)
+```
+
+### Success Factor 3: Capability Matrix Clarity
+
+**SLCPTAC showed**:
+- 7 omics × 7 omics = 49 combinations
+- Made it obvious: ANY omics vs ANY omics
+
+**SLTCGA should show**:
+- 8 omics × 8 omics = 64 combinations
+- List common combinations (CNV-mRNA, Methylation-mRNA, Mutation-mRNA, etc.)
+
+### Success Factor 4: Performance Transparency
+
+**Don't say**: "Fast and efficient analysis"
+**Do say**: "Runtime: 1.94 sec for 1,095 samples"
+
+**SLTCGA Performance Expectations** (based on data size):
+- Basic correlation: 1-3 sec (smaller than CPTAC)
+- Multi-cancer: <1 sec (TCGA pre-merged)
+- Enrichment: 2-5 sec (genome scan)
+- Survival: 0.5-2 sec (KM+Cox)
+
+### Success Factor 5: Research Question Focus
+
+**User Queries categorization worked perfectly**:
+- 110+ queries for cptac_correlation
+- Organized by research theme
+- All phrased as biological questions
+
+**Replicate for SLTCGA**:
+- Generate 30-40 queries per function
+- Organize by: Intra-Omics, Cross-Omics, Clinical, Immune, Multi-Cancer, etc.
+- Focus on TCGA-specific features (subtypes, immune cells, signatures)
+
+---
+
+## 🔧 TCGA-SPECIFIC CONSIDERATIONS
+
+### 1. Molecular Subtypes (32 subtypes)
+
+**Document clearly**:
+```r
+#' @param var1_cancers Character vector. Cancer types OR subtypes.
+#'   Cancer types: "BRCA", "LUAD", "COAD", etc. (33 options)
+#'   Subtypes: "BRCA-Basal", "BRCA-Her2", "BRCA-LumA", "BRCA-LumB" (32 options across 14 cancers)
+#'   Use \code{list_cancer_types()} to view all options.
+```
+
+### 2. Immune Cell Types (22 cells)
+
+**Show in examples**:
+```r
+# Immune-expression correlation
+result <- tcga_correlation(
+  var1 = "PDL1", var1_modal = "RNAseq",
+  var2 = "CD8_T_cells", var2_modal = "ImmuneCell"
+)
+```
+
+### 3. Molecular Signatures
+
+**Common signatures to showcase**:
+- Hypoxia_Score
+- EMT_Score  
+- Stemness_Score
+- TMB (Tumor Mutational Burden)
+- MSI (Microsatellite Instability)
+
+### 4. Data Availability
+
+**TCGA has**:
+- RNAseq, Mutation, Clinical: All 33 cancers
+- CNV: 32 cancers
+- Methylation: 27 cancers
+- miRNA: 31 cancers
+- ImmuneCell: All 33 cancers (computed)
+- Signature: All 33 cancers (computed)
+
+**Document in @param or @details**
+
+---
+
+## 📋 FINAL VALIDATION SCRIPT (For AI Agent)
+
+```bash
+#!/bin/bash
+# Run this after completing documentation
+
+PACKAGE="SLTCGA"
+FILE="R/main.R"
+
+echo "========================================="
+echo "Quality Validation: $PACKAGE"
+echo "========================================="
+echo ""
+
+# 1. Chinese characters
+CHINESE_COUNT=$(grep -E "(#'|^#[^!])" "$FILE" | grep -o "[\u4e00-\u9fff]" | wc -l)
+if [ "$CHINESE_COUNT" -eq 0 ]; then
+  echo "✓ No Chinese characters in documentation"
+else
+  echo "✗ Found $CHINESE_COUNT Chinese characters"
+fi
+
+# 2. References
+REF_COUNT=$(grep -c "@references" "$FILE")
+echo "✓ @references sections: $REF_COUNT"
+
+# 3. Performance Test
+PERF_COUNT=$(grep -c "@section Performance Test" "$FILE")
+echo "✓ @section Performance Test: $PERF_COUNT"
+
+# 4. User Queries
+QUERY_COUNT=$(grep -c "@section User Queries" "$FILE")
+echo "✓ @section User Queries: $QUERY_COUNT"
+
+# 5. donttest
+DONTTEST_COUNT=$(grep -c "\\\\donttest" "$FILE")
+echo "✓ \\donttest wrappers: $DONTTEST_COUNT"
+
+# 6. Unified structure mentions
+UNIFIED_COUNT=$(grep -c "list(stats, plot, raw_data)" "$FILE")
+echo "✓ Unified structure mentions: $UNIFIED_COUNT"
+
+echo ""
+echo "========================================="
+echo "Validation Complete"
+echo "========================================="
+```
+
+---
+
+## 🎓 BEST PRACTICES SUMMARY
+
+**From CellScope + SLCPTAC Success**:
+
+1. **Code-Logic-First**: Read code → Understand → Test → Document
+2. **Real Testing**: Use actual test results, not estimates
+3. **Unified Structure**: Emphasize `list(stats, plot, raw_data)` everywhere
+4. **Research Questions**: User Queries focus on biology, not methods
+5. **Interpretation Guide**: @details explains how to read results
+6. **Workflow Chaining**: "What You Can Do Next" links functions
+7. **Capability Matrix**: Show omics × omics combinations clearly
+8. **Performance Transparency**: Real runtime, not adjectives
+9. **English Only**: Zero Chinese in documentation
+10. **Executable Examples**: Use \donttest{}, show all three return components
+
+**Quality Bar**:
+- Testing: 10+ scenarios per main function
+- User Queries: 30-40 per main function
+- @description: ~80 words
+- @param: 2-3 lines each
+- @examples: Research questions + interpretation
+
+---
+
+**End of SLTCGA Documentation Rules**

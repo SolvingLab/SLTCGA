@@ -2,11 +2,11 @@
 % Please edit documentation in R/utils.R
 \name{.get_protein_coding_genes}
 \alias{.get_protein_coding_genes}
-\title{Get protein-coding genes from BioEnricher}
+\title{Get protein-coding gene symbols (embedded list)}
 \usage{
 .get_protein_coding_genes()
 }
 \description{
-Get protein-coding genes from BioEnricher
+Get protein-coding gene symbols (embedded list)
 }
 \keyword{internal}
